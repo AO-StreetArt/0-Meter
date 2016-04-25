@@ -24,7 +24,7 @@ Once you download Python, you can run the below commands to install the other de
 
 `pip install apscheduler`
 
-`pip install pyzmq`
+`sudo pip install pyzmq`
 
 ## Use
 
