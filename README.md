@@ -22,9 +22,9 @@ Before downloading 0-Meter, you will need a few things installed:
 
 Once you download Python, you can run the below commands to install the other dependencies:
 
-`pip install apscheduler`
+`sudo pip install apscheduler`
 
-`pip install pyzmq`
+`sudo pip install pyzmq`
 
 ## Use
 
