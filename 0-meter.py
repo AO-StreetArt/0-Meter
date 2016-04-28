@@ -22,8 +22,12 @@ import zmq
 import os
 import csv
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.interval import IntervalTrigger
+except Exception as e:
+    print('Unable to load scheduling libraries due to error:')
+    print(e)
 
 import time
 
@@ -186,6 +190,8 @@ def post_message():
             msg = msg_list.pop(0)
             time_list.append(time.time())
             socket.send_string(msg)
+            logging.debug("Message sent:")
+            logging.debug(msg)
             
             #Recieve the response 
             resp = socket.recv()
