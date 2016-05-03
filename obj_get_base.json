@@ -1,0 +1,5 @@
+{
+"message_type": $MSG_TYPE@,
+"key": "$KEY@",
+"lock_device_id": "$LOCK@"
+}
