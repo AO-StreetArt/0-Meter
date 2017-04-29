@@ -2,9 +2,9 @@
 """
 Created on Sat Mar  5 23:47:16 2016
 
--0-Meter Main Class- 
+-0-Meter Main Class-
 
-0-Meter is a configurable load testing framework for 0MQ-Based 
+0-Meter is a configurable load testing framework for 0MQ-Based
 Messaging Applications.
 
 It reads from a configuration XML to determine how to proceed with test cases
@@ -32,7 +32,7 @@ except Exception as e:
 import time
 
 #Global Variables
-msg_list = []        
+msg_list = []
 socket = None
 num_msg = 0
 base_msg = ""
@@ -41,7 +41,7 @@ base_msg = ""
 resp_time_list = []
 time_list = []
 
-#Config Variables        
+#Config Variables
 out_0mq_connect = None
 out_0mq_connect_type = None
 
@@ -62,45 +62,45 @@ include_csv = False
 span_interval = False
 
 def build_base_msg(msg_path):
-    #Open the base message File 
+    #Open the base message File
     global base_msg
     try:
         with open(msg_path, 'r') as f:
             global base_msg
             base_msg = f.read()
-            logging.info("Base Message file opened")
+            logging.debug("Base Message file opened")
     except Exception as e:
         logging.error('Exception during read of base message')
         logging.error(e)
 
 def build_msg_list_from_csv(msg_path, config_csv):
-    
+
     global msg_list
-    
+
     #List of replacement variables & values
     #We do not insert or remove, only append and clear which means we can assume
     #that they have the same ordering
     repl_variables = []
     repl_values = []
-    
+
     #Counter variable
     file_id_counter=0
     row_counter=0
     char_counter=0
-    
-    #Open the base message File 
+
+    #Open the base message File
     try:
         with open(msg_path, 'r') as f:
             msg_string = f.read()
-            logging.info("Base Message file opened")
+            logging.debug("Base Message file opened")
     except Exception as e:
         logging.error('Exception during read of base message')
         logging.error(e)
         msg_string = ""
-    
+
     #Open the CSV File and start building Message Files
     with open(config_csv, 'rb') as csvfile:
-        logging.info('CSV File Opened')
+        logging.debug('CSV File Opened')
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in reader:
             #We can access elements in the row with row[i], where i = column number
@@ -109,14 +109,14 @@ def build_msg_list_from_csv(msg_path, config_csv):
                 #This is a header row
                 for element in row:
                     repl_variables.append(element)
-                    logging.info('Replacement Variable %s added' % (element))
+                    logging.debug('Replacement Variable %s added' % (element))
             else:
                 #Process the row and build a new Message
-            
+
                 #Populate the repl_values list
                 for element in row:
                     repl_values.append(element)
-                
+
                 #Build the string message to be written to the output file
                 new_str = msg_string
 
@@ -147,35 +147,35 @@ def build_msg_list_from_csv(msg_path, config_csv):
                         for i in range(0, len(repl_variables)):
                             if repl_variables[i] == var_name:
                                 var_id=i
-                                
+
                         #We only want to perform a replacement if we found a matching variable name
                         if var_id > -1:
                             new_str = new_str[:var_start] + repl_values[var_id] + new_str[var_end+1:]
                             str_length = len(new_str)
                             char_counter=var_start
-                            
+
                         logging.debug('Character Counter')
                     else:
                         char_counter+=1
-                    
+
                 msg_list.append(new_str)
-                
+
                 #Clear the repl_values array for the next iteration
                 del repl_values[:]
-                
+
                 #Zero out the character counter for the next iteration
                 char_counter=0
-                
+
                 #Iterate the file counter
                 file_id_counter+=1
-                
+
             row_counter+=1
 
 def select_files_in_folder(dir, ext):
     for file in os.listdir(dir):
         if file.endswith('.%s' % ext):
             yield os.path.join(dir, file)
-            
+
 def touch(file_path):
     open(file_path, 'a').close()
 
@@ -190,10 +190,10 @@ def post_message():
             msg = msg_list.pop(0)
             time_list.append(time.time())
             socket.send_string(msg)
-            logging.debug("Message sent:")
-            logging.debug(msg)
-            
-            #Recieve the response 
+            logging.info("Message sent:")
+            logging.info(msg)
+
+            #Recieve the response
             resp = socket.recv()
             resp_time_list.append(time.time())
             logging.info("Response Recieved:")
@@ -226,19 +226,19 @@ def execute_main():
         print("Configuration File: The file name of the Configuration XML")
         print("Example: python 0-meter.py config.xml")
     elif len(sys.argv) != 2:
-        
+
         print("Wrong number of Input Parameters")
-        
+
     else:
-    
+
         print("Input Parameters:")
         print("Configuration File: %s" % (sys.argv[1]))
-        
+
     #-----------------------------------------------------------------------------#
     #-----------------------------------------------------------------------------#
-        
+
         #Parse the config XML and pull the values
-        
+
         tree = ET.parse(sys.argv[1])
         root = tree.getroot()
         for element in root:
@@ -284,7 +284,7 @@ def execute_main():
                         log_file = param.text
                     elif param.tag == 'Log_Level':
                         log_level = param.text
-        
+
         #Set up the file logging config
         if log_level == 'Debug':
             logging.basicConfig(filename=log_file, level=logging.DEBUG)
@@ -297,7 +297,7 @@ def execute_main():
         else:
             print("Log level not set to one of the given options, defaulting to debug level")
             logging.basicConfig(filename=log_file, level=logging.DEBUG)
-            
+
         try:
             #Attempt to connect to the outbound ZMQ Socket
             logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
@@ -312,7 +312,7 @@ def execute_main():
             else:
                 logging.error("Unknown Connection Type encountered")
                 return 0
-            
+
         #If an exception is thrown while executing the tests,
         #write that out to the log file
         except Exception as e:
@@ -332,20 +332,20 @@ def execute_main():
             #Pull the correct file paths
             msg_path = os.path.abspath(msg_location)
             config_csv = os.path.abspath(csv_location)
-            
+
             #Read the CSV, Build the message list, and take it's length for num_msg
             build_msg_list_from_csv(msg_path, config_csv)
             num_msg=len(msg_list)
-        
+
         elif multi_message:
             logging.debug("Building Messages from Folder")
             msg_folder = select_files_in_folder(os.path.abspath(msg_folder_location), msg_extension)
-            
+
             #Build the message list
             for msg in msg_folder:
                 build_base_msg(os.path.abspath(msg))
                 msg_list.append(base_msg)
-                
+
             num_msg = len(msg_list)
 
         #Now, we can execute the test plan
