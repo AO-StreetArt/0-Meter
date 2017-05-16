@@ -54,7 +54,7 @@ def build_base_msg(msg_path):
         logging.error('Exception during read of base message')
         logging.error(e)
 
-def build_msg_list_from_csv(msg_path, config_csv, var_start, var_end):
+def build_msg_list_from_csv(msg_path, config_csv, csv_var_start, csv_var_end):
 
     global msg_list
 
