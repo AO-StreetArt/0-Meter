@@ -33,6 +33,7 @@ import time
 
 #Global Variables
 msg_list = []
+context = None
 socket = None
 num_msg = 0
 base_msg = ""
@@ -40,26 +41,6 @@ base_msg = ""
 #Global Variables for tracking response times
 resp_time_list = []
 time_list = []
-
-#Config Variables
-out_0mq_connect = None
-out_0mq_connect_type = None
-
-log_file = None
-log_level = None
-
-msg_location = None
-msg_folder_location = None
-msg_extension = None
-csv_location = None
-csv_var_start = None
-csv_var_end = None
-interval = None
-
-single_message = False
-multi_message = False
-include_csv = False
-span_interval = False
 
 def build_base_msg(msg_path):
     #Open the base message File
@@ -179,48 +160,42 @@ def select_files_in_folder(dir, ext):
 def touch(file_path):
     open(file_path, 'a').close()
 
+
 def post_message():
     global resp_time_list
     global time_list
     global msg_list
     global socket
     if len(msg_list) > 0:
-        try:
-            #Send the message
-            msg = msg_list.pop(0)
-            time_list.append(time.time())
-            socket.send_string(msg)
-            logging.info("Message sent:")
-            logging.info(msg)
+        #Send the message
+        msg = msg_list.pop(0)
+        time_list.append(time.time())
+        socket.send_string(msg)
+        logging.info("Message sent:")
+        logging.info(msg)
 
-            #Recieve the response
+        #Recieve the response
+        try:
             resp = socket.recv()
             resp_time_list.append(time.time())
             logging.info("Response Recieved:")
             logging.info(resp)
         except Exception as e:
-            logging.error("Exception encountered during message post")
-            logging.error(e)
+            print("Socket Timeout")
+            del msg_list[:]
+            socket.close()
+            sys.exit(1)
+    else:
+        sys.exit(1)
+
+
 def execute_main():
     global base_msg
     global msg_list
     global socket
-    global num_msg
-    global out_0mq_connect
-    global out_0mq_connect_type
-    global log_file
-    global log_level
-    global msg_location
-    global msg_folder_location
-    global csv_location
-    global interval
-    global single_message
-    global multi_message
-    global include_csv
-    global span_interval
-    global msg_extension
-    global csv_var_start
-    global csv_var_end
+
+    timeout = 1000
+
     if len(sys.argv) == 1:
         print("Input Parameters:")
         print("Configuration File: The file name of the Configuration XML")
@@ -236,6 +211,24 @@ def execute_main():
 
     #-----------------------------------------------------------------------------#
     #-----------------------------------------------------------------------------#
+
+        single_message = False
+        multi_message = False
+        include_csv = False
+        span_interval = False
+
+        msg_location = ""
+        msg_folder_location = ""
+        msg_extension = ""
+        interval = 5
+        csv_location = ""
+        csv_var_start = ""
+        csv_var_end = ""
+        out_0mq_connect = ""
+        out_0mq_connect_type = ""
+        timeout = 1000
+        log_file = ""
+        log_level = ""
 
         #Parse the config XML and pull the values
 
@@ -278,6 +271,8 @@ def execute_main():
                         out_0mq_connect = param.text
                     if param.tag == 'Outbound_Connection_Type':
                         out_0mq_connect_type = param.text
+                    if param.tag == "Timeout":
+                        timeout = int(float(param.text))
             if element.tag == 'Logging':
                 for param in element:
                     if param.tag == 'Log_File':
@@ -303,6 +298,8 @@ def execute_main():
             logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
             logging.debug(out_0mq_connect)
             context = zmq.Context()
+            context.setsockopt(zmq.RCVTIMEO, timeout)
+            context.setsockopt(zmq.LINGER, 0)
             if out_0mq_connect_type == "REQ":
                 socket = context.socket(zmq.REQ)
                 socket.connect(out_0mq_connect)
@@ -351,8 +348,10 @@ def execute_main():
         #Now, we can execute the test plan
         if span_interval == False:
             logging.debug("Sending Messages all at once")
-            while len(msg_list) > 0:
+            total_count = 0
+            while len(msg_list) > 0 and total_count < 10000:
                 post_message()
+                total_count+=1
         else:
             logging.debug("Set up the Background Scheduler")
             scheduler = BackgroundScheduler()
@@ -361,7 +360,7 @@ def execute_main():
             interv = IntervalTrigger(seconds=time_interv)
             scheduler.add_job(post_message, interv)
             scheduler.start()
-            time.sleep(interval + time_interv)
+            time.sleep(interval)
     return 0;
 
 
