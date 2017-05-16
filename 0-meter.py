@@ -54,7 +54,7 @@ def build_base_msg(msg_path):
         logging.error('Exception during read of base message')
         logging.error(e)
 
-def build_msg_list_from_csv(msg_path, config_csv):
+def build_msg_list_from_csv(msg_path, config_csv, var_start, var_end):
 
     global msg_list
 
@@ -331,7 +331,7 @@ def execute_main():
             config_csv = os.path.abspath(csv_location)
 
             #Read the CSV, Build the message list, and take it's length for num_msg
-            build_msg_list_from_csv(msg_path, config_csv)
+            build_msg_list_from_csv(msg_path, config_csv, csv_var_start, csv_var_end)
             num_msg=len(msg_list)
 
         elif multi_message:
