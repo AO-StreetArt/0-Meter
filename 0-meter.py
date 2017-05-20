@@ -189,7 +189,7 @@ def post_message():
             #Send the message
             msg = msg_list.pop(0)
             time_list.append(time.time())
-            socket.send_string(msg)
+            socket.send_string(msg + "\n")
             logging.info("Message sent:")
             logging.info(msg)
 
