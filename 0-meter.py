@@ -202,7 +202,7 @@ def execute_main():
     global msg_list
     global socket
 
-    timeout = 1000
+    timeout = 5000
 
     if len(sys.argv) == 1:
         print("Input Parameters:")
