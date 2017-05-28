@@ -1,5 +1,7 @@
 # 0-Meter
 
+![](https://travis-ci.org/AO-StreetArt/0-Meter.svg?branch=master)
+
 0-Meter is heavily influenced by JMeter, and is designed to be a load testing application for 0MQ-Based Applications.
 
 The python program can read from flat files to build messages, as well as substitute variables found in a CSV file.  It can transmit one or more messages to a server all at once, or at scheduled intervals.
