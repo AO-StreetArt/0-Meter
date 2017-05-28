@@ -233,6 +233,7 @@ def execute_main():
         out_0mq_connect = ""
         out_0mq_connect_type = ""
         timeout = 0
+        timeout_flag = False
         log_file = ""
         log_level = ""
 
@@ -278,6 +279,7 @@ def execute_main():
                     if param.tag == 'Outbound_Connection_Type':
                         out_0mq_connect_type = param.text
                     if param.tag == "Timeout":
+                        timeout_flag = True
                         timeout = int(float(param.text))
             if element.tag == 'Logging':
                 for param in element:
@@ -304,7 +306,7 @@ def execute_main():
             logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
             logging.debug(out_0mq_connect)
             context = zmq.Context()
-            if (timeout > 0):
+            if (timeout > 0 and timeout_flag):
                 context.setsockopt(zmq.RCVTIMEO, timeout)
                 context.setsockopt(zmq.LINGER, 0)
             if out_0mq_connect_type == "REQ":
