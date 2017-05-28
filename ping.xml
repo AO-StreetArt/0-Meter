@@ -20,7 +20,7 @@
     <Timeout>5000</Timeout>
   </ZeroMQ>
   <Logging>
-    <Log_File>update.log</Log_File>
+    <Log_File>ping.log</Log_File>
     <Log_Level>Debug</Log_Level>
   </Logging>
 </Configuration>
