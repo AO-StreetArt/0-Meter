@@ -234,7 +234,7 @@ def execute_main():
         csv_var_end = ""
         out_0mq_connect = ""
         out_0mq_connect_type = ""
-        timeout = 1000
+        timeout = 0
         log_file = ""
         log_level = ""
 
@@ -306,8 +306,9 @@ def execute_main():
             logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
             logging.debug(out_0mq_connect)
             context = zmq.Context()
-            context.setsockopt(zmq.RCVTIMEO, timeout)
-            context.setsockopt(zmq.LINGER, 0)
+            if (timeout > 0):
+                context.setsockopt(zmq.RCVTIMEO, timeout)
+                context.setsockopt(zmq.LINGER, 0)
             if out_0mq_connect_type == "REQ":
                 socket = context.socket(zmq.REQ)
                 socket.connect(out_0mq_connect)

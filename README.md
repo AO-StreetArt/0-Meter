@@ -22,9 +22,16 @@ Before downloading 0-Meter, you will need a few things installed:
 
 Once you download Python, you can run the below commands to install the other dependencies:
 
+* Linux
+
 `sudo pip install apscheduler`
 
 `sudo pip install pyzmq`
+
+* Windows
+
+`python -m pip install apscheduler`
+`python -m pip install pyzmq`
 
 ## Use
 
@@ -104,7 +111,7 @@ Here we send a collection of messages, all at once, read from a collection of fl
 - [x] Include_CSV
 - [] Span_Over_Interval
 
-Here we send a collection of messages, all at once, on the specified port.  The messages are created by reading a base message, parsing it for defined variables, and substiting them with values from the CSV.  Variables are simply names that match the headers of the CSV File, starting with the Variable_Start_Character and ending with the Variable_End_Character.  The below values are read from the Message Segment:
+Here we send a collection of messages, all at once, on the specified port.  The messages are created by reading a base message, parsing it for defined variables, and substituting them with values from the CSV.  Variables are simply names that match the headers of the CSV File, starting with the Variable_Start_Character and ending with the Variable_End_Character.  The below values are read from the Message Segment:
 
 * Message_Location - The location of the base message
 * CSV_Location - The location & Filename of the CSV to read for variable data
@@ -118,7 +125,7 @@ Here we send a collection of messages, all at once, on the specified port.  The 
 - [x] Include_CSV
 - [x] Span_Over_Interval
 
-Here we send a collection of messages, all at once, on the specified port.  The messages are created by reading a base message, parsing it for defined variables, and substiting them with values from the CSV.  Variables are simply names that match the headers of the CSV File, starting with the Variable_Start_Character and ending with the Variable_End_Character.  These messages are sent periodically, with the formula being one message per (number_of_messages / interval) seconds.  The below values are read from the Message Segment:
+Here we send a collection of messages, all at once, on the specified port.  The messages are created by reading a base message, parsing it for defined variables, and substituting them with values from the CSV.  Variables are simply names that match the headers of the CSV File, starting with the Variable_Start_Character and ending with the Variable_End_Character.  These messages are sent periodically, with the formula being one message per (number_of_messages / interval) seconds.  The below values are read from the Message Segment:
 
 * Message_Location - The location of the base message
 * CSV_Location - The location & Filename of the CSV to read for variable data
