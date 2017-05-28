@@ -167,14 +167,6 @@ def post_message():
     global msg_list
     global socket
     if len(msg_list) > 0:
-        #Send the message
-        msg = msg_list.pop(0)
-        time_list.append(time.time())
-        socket.send_string(msg)
-        logging.info("Message sent:")
-        logging.info(msg)
-
-        #Recieve the response
         try:
             #Send the message
             msg = msg_list.pop(0)
@@ -189,7 +181,9 @@ def post_message():
             logging.info("Response Recieved:")
             logging.info(resp)
         except Exception as e:
-            print("Socket Timeout")
+            print("Error sending")
+            logging.error('Exception')
+            logging.error(e)
             del msg_list[:]
             socket.close()
             sys.exit(1)
@@ -233,7 +227,6 @@ def execute_main():
         out_0mq_connect = ""
         out_0mq_connect_type = ""
         timeout = 0
-        timeout_flag = False
         log_file = ""
         log_level = ""
 
@@ -279,7 +272,6 @@ def execute_main():
                     if param.tag == 'Outbound_Connection_Type':
                         out_0mq_connect_type = param.text
                     if param.tag == "Timeout":
-                        timeout_flag = True
                         timeout = int(float(param.text))
             if element.tag == 'Logging':
                 for param in element:
@@ -306,7 +298,7 @@ def execute_main():
             logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
             logging.debug(out_0mq_connect)
             context = zmq.Context()
-            if (timeout > 0 and timeout_flag):
+            if (timeout > 0):
                 context.setsockopt(zmq.RCVTIMEO, timeout)
                 context.setsockopt(zmq.LINGER, 0)
             if out_0mq_connect_type == "REQ":
@@ -357,10 +349,8 @@ def execute_main():
         #Now, we can execute the test plan
         if span_interval == False:
             logging.debug("Sending Messages all at once")
-            total_count = 0
-            while len(msg_list) > 0 and total_count < 10000:
+            while len(msg_list) > 0:
                 post_message()
-                total_count+=1
         else:
             logging.debug("Set up the Background Scheduler")
             scheduler = BackgroundScheduler()
