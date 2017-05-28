@@ -202,8 +202,6 @@ def execute_main():
     global msg_list
     global socket
 
-    timeout = 5000
-
     if len(sys.argv) == 1:
         print("Input Parameters:")
         print("Configuration File: The file name of the Configuration XML")
