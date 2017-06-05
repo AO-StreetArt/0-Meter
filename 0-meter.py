@@ -298,22 +298,22 @@ def execute_main():
             if element.tag == 'Behavior':
                 for param in element:
                     if param.tag == 'Single_Message':
-                        if param.text == 'True':
+                        if param.text == 'True' or param.text == 'true':
                             single_message = True
                     if param.tag == 'Multi_Message':
-                        if param.text == 'True':
+                        if param.text == 'True' or param.text == 'true':
                             multi_message = True
                     if param.tag == 'Include_CSV':
-                        if param.text == 'True':
+                        if param.text == 'True' or param.text == 'true':
                             include_csv = True
                     if param.tag == 'Span_Over_Interval':
-                        if param.text == 'True':
+                        if param.text == 'True' or param.text == 'true':
                             span_interval = True
                     if param.tag == 'Parse_Responses':
-                        if param.text == 'True'
+                        if param.text == 'True' or param.text == 'true':
                             parse_responses = True
                     if param.tag == 'Fail_On_Response':
-                        if param.text == 'True'
+                        if param.text == 'True' or param.text == 'true':
                             fail_on_response = True
             if element.tag == 'Message':
                 for param in element:
