@@ -451,8 +451,8 @@ def execute_main():
                     except Exception as e:
                         try:
                             parsed_json = json.loads(response[1:])
-                            except Exception as e:
-                                logging.error('Unable to parse response: %s' % response)
+                        except Exception as e:
+                            logging.error('Unable to parse response: %s' % response)
                     if parsed_json is not None:
 
                         # TO-DO: Write the response key to the CSV
