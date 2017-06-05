@@ -310,10 +310,10 @@ def execute_main():
                         if param.text == 'True':
                             span_interval = True
                     if param.tag == 'Parse_Responses':
-                        if param.text == True
+                        if param.text == 'True'
                             parse_responses = True
                     if param.tag == 'Fail_On_Response':
-                        if param.text == True
+                        if param.text == 'True'
                             fail_on_response = True
             if element.tag == 'Message':
                 for param in element:
