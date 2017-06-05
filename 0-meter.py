@@ -21,6 +21,7 @@ import logging
 import zmq
 import os
 import csv
+import json
 
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -33,6 +34,7 @@ import time
 
 #Global Variables
 msg_list = []
+response_list = []
 context = None
 socket = None
 num_msg = 0
@@ -41,6 +43,55 @@ base_msg = ""
 #Global Variables for tracking response times
 resp_time_list = []
 time_list = []
+
+def parse_config_path(field_path):
+    logging.debug("Entering Parsing of Response Field Path")
+    # Parse the Field Path
+    field_path_list = []
+    # Pull the first value in assuming the message is an object
+    cut_index = 0
+    pd_index = field_path.find('.')
+    ar_index = field_path.find('[')
+    if pd_index > ar_index:
+        cut_index = pd_index
+    else:
+        cut_index = ar_index
+    path_list_tuple = ('.', field_path[0:cut_index])
+    field_path = field_path[cut_index:]
+    while(True):
+        logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
+
+        # Find the first delimiter
+        cut_index = 0
+        pd_index = field_path.find('.',1)
+        ar_index = field_path.find('[',1)
+        if pd_index > ar_index:
+            cut_index = pd_index
+        else:
+            cut_index = ar_index
+        path_list_tuple = None
+
+        # If another . or [ is found
+        if cut_index > -1:
+            path_list_tuple = (field_path[0:1], field_path[1:cut_index])
+            field_path = field_path[cut_index:]
+        else:
+            path_list_tuple = (field_path[0:1], field_path[1:])
+            break
+        field_path_list.append(path_list_tuple)
+
+    return field_path_list
+
+def find_json_path(json_doc, path_list):
+    current_elt = json_doc
+    # Iterate over the path_list to get to the element we want to match against
+    for path_element in path_list:
+        logging.debug("Entering Path Element %s -- %s" % (path_element[0], path_element[1]))
+        if (path_element[0] == '.'):
+            current_elt = current_elt[path_element[1]]
+        elif (path_element[0] == '['):
+            current_elt = current_elt[int(path_element[1])]
+    return current_elt
 
 def build_base_msg(msg_path):
     #Open the base message File
@@ -165,6 +216,7 @@ def post_message():
     global resp_time_list
     global time_list
     global msg_list
+    global response_list
     global socket
     if len(msg_list) > 0:
         try:
@@ -177,6 +229,7 @@ def post_message():
 
             #Recieve the response
             resp = socket.recv()
+            response_list.append(resp)
             resp_time_list.append(time.time())
             logging.info("Response Recieved:")
             logging.info(resp)
@@ -230,6 +283,13 @@ def execute_main():
         log_file = ""
         log_level = ""
 
+        parse_responses = False
+        fail_on_response = False
+        response_field_path = ""
+        response_success_value = ""
+        response_output_csv = ""
+        response_key_path = ""
+
         #Parse the config XML and pull the values
 
         tree = ET.parse(sys.argv[1])
@@ -249,6 +309,12 @@ def execute_main():
                     if param.tag == 'Span_Over_Interval':
                         if param.text == 'True':
                             span_interval = True
+                    if param.tag == 'Parse_Responses':
+                        if param.text == True
+                            parse_responses = True
+                    if param.tag == 'Fail_On_Response':
+                        if param.text == True
+                            fail_on_response = True
             if element.tag == 'Message':
                 for param in element:
                     if param.tag == 'Message_Location':
@@ -279,6 +345,16 @@ def execute_main():
                         log_file = param.text
                     elif param.tag == 'Log_Level':
                         log_level = param.text
+            if element.tag == 'Response':
+                for param in element:
+                    if param.tag == 'Field_Path':
+                        response_field_path = param.text
+                    if param.tag == 'Key_Path':
+                        response_key_path = param.text
+                    if param.tag == 'Success_Value':
+                        response_success_value = param.text
+                    if param.tag == 'Output_Csv':
+                        response_output_csv = param.text
 
         #Set up the file logging config
         if log_level == 'Debug':
@@ -360,6 +436,31 @@ def execute_main():
             scheduler.add_job(post_message, interv)
             scheduler.start()
             time.sleep(interval)
+
+        # Perform any necessary response parsing
+        if parse_responses:
+            success_field_list = parse_config_path(response_field_path)
+            success_key_list = parse_config_path(response_key_path)
+            for response in response_list:
+                # JSON Response Parsing
+                if (msg_extension == 'json'):
+                    logging.debug("Parsing Response: %s" % response)
+                    parsed_json = None
+                    try:
+                        parsed_json = json.loads(response)
+                    except Exception as e:
+                        try:
+                            parsed_json = json.loads(response[1:])
+                            except Exception as e:
+                                logging.error('Unable to parse response: %s' % response)
+                    if parsed_json is not None:
+
+                        # TO-DO: Write the response key to the CSV
+                        key_val = find_json_path(parsed_json, success_key_list)
+
+                        # TO-DO: Test the success value and exit if necessary
+                        if fail_on_response:
+                            success_val = find_json_path(parsed_json, success_field_list)
     return 0;
 
 
