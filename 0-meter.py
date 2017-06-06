@@ -250,7 +250,7 @@ def find_json_path(json_doc, path_list):
         except Exception as e:
             logging.error("Exception during retrieval of JSON Value")
             logging.error(e)
-            system.exit(1)
+            sys.exit(1)
     return current_elt
 
 
