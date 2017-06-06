@@ -281,7 +281,10 @@ def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
         logging.debug('CSV File Opened')
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
 
-        header_row = reader.next()
+        if sys.version_info[0] < 3:
+            header_row = reader.next()
+        else:
+            header_row = reader.__next__()
         header_dict = {}
         logging.debug("Header row retrieved")
 
