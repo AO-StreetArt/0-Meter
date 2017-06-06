@@ -196,7 +196,7 @@ def parse_config_path(field_path):
     cut_index = 0
     pd_index = field_path.find('.')
     ar_index = field_path.find('[')
-    if pd_index > ar_index:
+    if pd_index < ar_index:
         cut_index = pd_index
     else:
         cut_index = ar_index
