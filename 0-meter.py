@@ -203,13 +203,14 @@ def parse_config_path(field_path):
     path_list_tuple = None
     if cut_index > -1:
         path_list_tuple = ('.', field_path[0:cut_index])
+        field_path_list.append(path_list_tuple)
         field_path = field_path[cut_index:]
     else:
         path_list_tuple = ('.', field_path)
-        field_path = ""
+        field_path_list.append(path_list_tuple)
+        return 0
     logging.debug("Writing first tuple to path list: %s -- %s" % (path_list_tuple[0], path_list_tuple[1]))
-    field_path_list.append(path_list_tuple)
-    while( len(field_path) > 0 ):
+    while( True ):
         logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
 
         # Find the first delimiter
@@ -220,14 +221,15 @@ def parse_config_path(field_path):
             cut_index = pd_index
         else:
             cut_index = ar_index
-        path_list_tuple = None
 
         # If another . or [ is found
         if cut_index > -1:
             path_list_tuple = (field_path[0:1], field_path[1:cut_index])
+            field_path_list.append(path_list_tuple)
             field_path = field_path[cut_index:]
         else:
             path_list_tuple = (field_path[0:1], field_path[1:])
+            field_path_list.append(path_list_tuple)
             break
         field_path_list.append(path_list_tuple)
 
