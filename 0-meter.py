@@ -347,7 +347,7 @@ def execute_main(config_file):
         logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
         logging.debug(session['out_0mq_connect'])
         session.context = zmq.Context()
-        if (timeout > 0):
+        if (session['timeout'] > 0):
             session.context.setsockopt(zmq.RCVTIMEO, session['timeout'])
             session.context.setsockopt(zmq.LINGER, 0)
         if session['out_0mq_connect_type'] == "REQ":
@@ -358,18 +358,18 @@ def execute_main(config_file):
             socket.connect(session['out_0mq_connect'])
         else:
             logging.error("Unknown Connection Type encountered")
-            return 0
+            sys.exit(1)
     except Exception as e:
         logging.error('Exception')
         logging.error(e)
         print("Exception encountered connecting to 0MQ Socket, please see logs for details")
-        return 0
+        sys.exit(1)
 
     #Now, we need to determine how many messages we're sending and build them
     if session['single_message']:
         logging.debug("Building Single Message")
         session.num_msg=1
-        base_msg = build_msg( os.path.abspath(msg_location) )
+        base_msg = build_msg( os.path.abspath(session['msg_location']) )
         msg_list.append( base_msg )
     elif session['multi_message'] and session['include_csv']:
         logging.debug("Building Messages from CSV")
