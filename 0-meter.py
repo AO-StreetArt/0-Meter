@@ -455,7 +455,7 @@ def execute_main(config_file):
                             try:
                                 success_val = find_json_path(parsed_json, success_field_list)
                                 logging.debug("Checking json success value")
-                                if str(success_val) != str(session['response_success_value']):
+                                if int(success_val) != int(session['response_success_value']):
                                     logging.error("Incorrect Success value: %s != %s" % (success_val, session['response_success_value']))
                                     sys.exit(1)
                             except Exception as e:
