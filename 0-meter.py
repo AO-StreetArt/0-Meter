@@ -436,9 +436,14 @@ def execute_main(config_file):
 
     # Perform any necessary response parsing
     if session['parse_responses']:
-        success_field_list = parse_config_path(session['response_field_path'])
-        success_key_list = parse_config_path(session['response_key_path'])
+
+        # Pull the paths for configured fields
+        if session['fail_on_response']:
+            success_field_list = parse_config_path(session['response_field_path'])
         if session['print_response_keys']:
+            success_key_list = parse_config_path(session['response_key_path'])
+
+            # Set up the CSV File
             csvfile = None
             if sys.version_info[0] < 3:
                 csvfile = open(session['response_output_csv'], 'wb')
@@ -447,6 +452,8 @@ def execute_main(config_file):
             csvwriter = csv.writer(csvfile, delimiter=',',
                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             csvwriter.writerow(['Key'])
+
+        # Iterate over the responses
         for response in session.response_list:
             # JSON Response Parsing
             if (session['msg_extension'] == 'json'):
@@ -462,8 +469,8 @@ def execute_main(config_file):
                 if parsed_json is not None:
 
                     # Write the response key to the CSV
-                    key_val = find_json_path(parsed_json, success_key_list)
                     if session['print_response_keys']:
+                        key_val = find_json_path(parsed_json, success_key_list)
                         try:
                             csvwriter.writerow([key_val])
                         except Exception as e:
