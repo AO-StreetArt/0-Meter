@@ -90,6 +90,7 @@ class Session(object):
         self.param_list['log_level'] = ""
 
         self.param_list['parse_responses'] = False
+        self.param_list['print_response_keys'] = False
         self.param_list['fail_on_response'] = False
         self.param_list['response_field_path'] = ""
         self.param_list['response_success_value'] = ""
@@ -117,6 +118,9 @@ class Session(object):
                     if param.tag == 'Parse_Responses':
                         if param.text == 'True' or param.text == 'true':
                             self.param_list['parse_responses'] = True
+                    if param.tag == 'Print_Response_Keys':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['print_response_keys'] = True
                     if param.tag == 'Fail_On_Response':
                         if param.text == 'True' or param.text == 'true':
                             self.param_list['fail_on_response'] = True
@@ -432,16 +436,25 @@ def execute_main(config_file):
 
     # Perform any necessary response parsing
     if session['parse_responses']:
-        success_field_list = parse_config_path(session['response_field_path'])
-        success_key_list = parse_config_path(session['response_key_path'])
+
         csvfile = None
-        if sys.version_info[0] < 3:
-            csvfile = open(session['response_output_csv'], 'wb')
-        else:
-            csvfile = open(session['response_output_csv'], 'w')
-        csvwriter = csv.writer(csvfile, delimiter=',',
-                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        csvwriter.writerow(['Key'])
+
+        # Pull the paths for configured fields
+        if session['fail_on_response']:
+            success_field_list = parse_config_path(session['response_field_path'])
+        if session['print_response_keys']:
+            success_key_list = parse_config_path(session['response_key_path'])
+
+            # Set up the CSV File
+            if sys.version_info[0] < 3:
+                csvfile = open(session['response_output_csv'], 'wb')
+            else:
+                csvfile = open(session['response_output_csv'], 'w')
+            csvwriter = csv.writer(csvfile, delimiter=',',
+                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            csvwriter.writerow(['Key'])
+
+        # Iterate over the responses
         for response in session.response_list:
             # JSON Response Parsing
             if (session['msg_extension'] == 'json'):
@@ -457,13 +470,14 @@ def execute_main(config_file):
                 if parsed_json is not None:
 
                     # Write the response key to the CSV
-                    key_val = find_json_path(parsed_json, success_key_list)
-                    try:
-                        csvwriter.writerow([key_val])
-                    except Exception as e:
-                        logging.error("Exception while writing response key")
-                        logging.error(e)
-                        sys.exit(1)
+                    if session['print_response_keys']:
+                        key_val = find_json_path(parsed_json, success_key_list)
+                        try:
+                            csvwriter.writerow([key_val])
+                        except Exception as e:
+                            logging.error("Exception while writing response key")
+                            logging.error(e)
+                            sys.exit(1)
 
                     # Test the success value and exit if necessary
                     if session['fail_on_response']:
@@ -477,7 +491,8 @@ def execute_main(config_file):
                             logging.error("Exception while comparing response success value")
                             logging.error(e)
                             sys.exit(1)
-        csvfile.close()
+        if csvfile is not None:
+            csvfile.close()
     return 0;
 
 
