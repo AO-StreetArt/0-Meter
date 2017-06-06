@@ -334,19 +334,15 @@ def post_message():
             del session.msg_list[:]
             session.socket.close()
             sys.exit(1)
-    else:
-        sys.exit(1)
 
 
 # Execute the main function and start 0-meter
 def execute_main(config_file):
     global session
     session = Session()
-    base_msg = session.base_msg
-    msg_list = session.msg_list
 
     # Set up the session
-    session.configure(sys.argv[1])
+    session.configure(config_file)
 
     #Set up the file logging config
     if session['log_level'] == 'Debug':
@@ -388,18 +384,19 @@ def execute_main(config_file):
     if session['single_message']:
         logging.debug("Building Single Message")
         session.num_msg=1
-        base_msg = build_msg( os.path.abspath(session['msg_location']) )
-        msg_list.append( base_msg )
+        session.base_msg = build_msg( os.path.abspath(session['msg_location']) )
+        session.msg_list.append( session.base_msg )
     elif session['multi_message'] and session['include_csv']:
         logging.debug("Building Messages from CSV")
         #Pull the correct file paths
         msg_path = os.path.abspath(session['msg_location'])
         config_csv = os.path.abspath(session['csv_location'])
-        base_msg = build_msg(msg_path)
+        session.base_msg = build_msg(msg_path)
+        logging.debug("Base Message: %s" % session.base_msg)
 
         #Read the CSV, Build the message list, and take it's length for num_msg
-        msg_list = build_msg_list_from_csv(base_msg, config_csv, session['csv_var_start'], session['csv_var_end'])
-        session.num_msg=len(msg_list)
+        session.msg_list = build_msg_list_from_csv(session.base_msg, config_csv, session['csv_var_start'], session['csv_var_end'])
+        session.num_msg=len(session.msg_list)
 
     elif session['multi_message']:
         logging.debug("Building Messages from Folder")
@@ -407,13 +404,13 @@ def execute_main(config_file):
 
         #Build the message list
         for path in msg_folder:
-            msg_list.append( build_msg(os.path.abspath(path)) )
-        session.num_msg = len(msg_list)
+            session.msg_list.append( build_msg(os.path.abspath(path)) )
+        session.num_msg = len(session.msg_list)
 
     #Now, we can execute the test plan
     if session['span_interval'] == False:
         logging.debug("Sending Messages all at once")
-        while len(msg_list) > 0:
+        while len(session.msg_list) > 0:
             post_message()
     else:
         logging.debug("Set up the Background Scheduler")
