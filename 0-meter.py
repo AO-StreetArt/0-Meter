@@ -453,9 +453,9 @@ def execute_main(config_file):
                         # Test the success value and exit if necessary
                         if session['fail_on_response']:
                             try:
-                            success_val = find_json_path(parsed_json, success_field_list)
-                            if success_val != session['response_success_value']:
-                                sys.exit(1)
+                                success_val = find_json_path(parsed_json, success_field_list)
+                                if success_val != session['response_success_value']:
+                                    sys.exit(1)
                             except Exception as e:
                                 logging.error("Exception while comparing response success value")
                                 logging.error(e)
