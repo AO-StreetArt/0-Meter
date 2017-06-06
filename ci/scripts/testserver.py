@@ -17,4 +17,4 @@ while True:
     print("Received request: %s" % message)
 
     #  Send reply back to client
-    socket.send(b"Thanks!")
+    socket.send(b'{"responses": [{"codes": [0, 1, 2], "msg": "Thanks!"}, {"codes": [3, 4, 5], "msg": "Not!"}]}')

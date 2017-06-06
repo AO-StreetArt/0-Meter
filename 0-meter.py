@@ -12,7 +12,7 @@ It reads from a configuration XML to determine how to proceed with test cases
 We support sending an individual file as well as defining variables and
 updating values with those from a separate CSV.
 
-@author: alex
+@author: alex barry
 """
 
 import xml.etree.ElementTree as ET
@@ -22,6 +22,7 @@ import zmq
 import os
 import csv
 import json
+import time
 
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,20 +31,163 @@ except Exception as e:
     print('Unable to load scheduling libraries due to error:')
     print(e)
 
-import time
 
-#Global Variables
-msg_list = []
-response_list = []
-context = None
-socket = None
-num_msg = 0
-base_msg = ""
+# There is a single Global Session
+# This class stores config variables,
+# as well as global variables
+class Session(object):
+    def __init__(self):
+        self.param_list = {}
 
-#Global Variables for tracking response times
-resp_time_list = []
-time_list = []
+        #Global Variables
+        self.msg_list = []
+        self.response_list = []
+        self.context = None
+        self.socket = None
+        self.num_msg = 0
+        self.base_msg = ""
 
+        #Global Variables for tracking response times
+        self.resp_time_list = []
+        self.time_list = []
+
+    def teardown(self):
+        self.param_list.clear()
+
+    def __len__(self):
+        return len(self.param_list)
+
+    def __getitem__(self, key):
+        return self.param_list[key]
+
+    def __setitem__(self, key, value):
+        self.param_list[key] = value
+
+    def __delitem__(self, key):
+        del self.param_list[key]
+
+    def __iter__(self):
+        return iter(self.param_list)
+
+    def configure(self, config_file):
+        # Read the config file
+        self.param_list['single_message'] = False
+        self.param_list['multi_message'] = False
+        self.param_list['include_csv'] = False
+        self.param_list['span_interval'] = False
+
+        self.param_list['msg_location'] = ""
+        self.param_list['msg_folder_location'] = ""
+        self.param_list['msg_extension'] = ""
+        self.param_list['interval'] = 5
+        self.param_list['csv_location'] = ""
+        self.param_list['csv_var_start'] = ""
+        self.param_list['csv_var_end'] = ""
+        self.param_list['out_0mq_connect'] = ""
+        self.param_list['out_0mq_connect_type'] = ""
+        self.param_list['timeout'] = 0
+        self.param_list['log_file'] = ""
+        self.param_list['log_level'] = ""
+
+        self.param_list['parse_responses'] = False
+        self.param_list['fail_on_response'] = False
+        self.param_list['response_field_path'] = ""
+        self.param_list['response_success_value'] = ""
+        self.param_list['response_output_csv'] = ""
+        self.param_list['response_key_path'] = ""
+
+        #Parse the config XML and pull the values
+        tree = ET.parse(sys.argv[1])
+        root = tree.getroot()
+        for element in root:
+            if element.tag == 'Behavior':
+                for param in element:
+                    if param.tag == 'Single_Message':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['single_message'] = True
+                    if param.tag == 'Multi_Message':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['multi_message'] = True
+                    if param.tag == 'Include_CSV':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['include_csv'] = True
+                    if param.tag == 'Span_Over_Interval':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['span_interval'] = True
+                    if param.tag == 'Parse_Responses':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['parse_responses'] = True
+                    if param.tag == 'Fail_On_Response':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['fail_on_response'] = True
+            if element.tag == 'Message':
+                for param in element:
+                    if param.tag == 'Message_Location':
+                        self.param_list['msg_location'] = param.text
+                    if param.tag == 'Message_Folder_Location':
+                        self.param_list['msg_folder_location'] = param.text
+                    if param.tag == 'Message_Extension':
+                        self.param_list['msg_extension'] = param.text
+                    if param.tag == 'Interval':
+                        self.param_list['interval'] = float(param.text)
+                    if param.tag == 'CSV_Location':
+                        self.param_list['csv_location'] = param.text
+                    if param.tag == 'Variable_Start_Character':
+                        self.param_list['csv_var_start'] = param.text
+                    if param.tag == 'Variable_End_Character':
+                        self.param_list['csv_var_end'] = param.text
+            if element.tag == 'ZeroMQ':
+                for param in element:
+                    if param.tag == 'Outbound_Connection':
+                        self.param_list['out_0mq_connect'] = param.text
+                    if param.tag == 'Outbound_Connection_Type':
+                        self.param_list['out_0mq_connect_type'] = param.text
+                    if param.tag == "Timeout":
+                        self.param_list['timeout'] = int(float(param.text))
+            if element.tag == 'Logging':
+                for param in element:
+                    if param.tag == 'Log_File':
+                        self.param_list['log_file'] = param.text
+                    elif param.tag == 'Log_Level':
+                        self.param_list['log_level'] = param.text
+            if element.tag == 'Response':
+                for param in element:
+                    if param.tag == 'Field_Path':
+                        self.param_list['response_field_path'] = param.text
+                    if param.tag == 'Key_Path':
+                        self.param_list['response_key_path'] = param.text
+                    if param.tag == 'Success_Value':
+                        self.param_list['response_success_value'] = param.text
+                    if param.tag == 'Output_Csv':
+                        self.param_list['response_output_csv'] = param.text
+
+    def __str__(self):
+        ret_str = "Session:\n"
+        for key, val in self.param_list.iteritems():
+            ret_str = ret_str + "%s: %s\n" % (key, val)
+        return ret_str
+
+
+# Define the single global session
+session = None
+
+
+# Replace a a set of variables within a message
+# base_text - The message contianing variables
+# variable_dict - A dictionary of variable names & values
+def replace_variables(msg, variable_dict):
+    # The dict uses different functions to return list generators of key/value pairs in 2.x vs 3.x
+    # So, we use the sys module to detect at run time and use the correct method
+    if sys.version_info[0] < 3:
+        for key, val in variable_dict.iteritems():
+            msg = msg.replace(key, val)
+    else:
+        for key, val in variable_dict.items():
+            msg = msg.replace(key, val)
+    return msg
+
+
+# Parse a configuration path in the format root.obj[1
 def parse_config_path(field_path):
     logging.debug("Entering Parsing of Response Field Path")
     # Parse the Field Path
@@ -82,6 +226,8 @@ def parse_config_path(field_path):
 
     return field_path_list
 
+
+# Find a JSON Element within the specified doc, given the specified parsed path list
 def find_json_path(json_doc, path_list):
     current_elt = json_doc
     # Iterate over the path_list to get to the element we want to match against
@@ -93,357 +239,184 @@ def find_json_path(json_doc, path_list):
             current_elt = current_elt[int(path_element[1])]
     return current_elt
 
-def build_base_msg(msg_path):
+
+# Populate the Base Message Global Variable
+def build_msg(msg_path):
     #Open the base message File
-    global base_msg
+    msg = None
     try:
         with open(msg_path, 'r') as f:
-            global base_msg
-            base_msg = f.read()
+            msg = f.read()
             logging.debug("Base Message file opened")
     except Exception as e:
         logging.error('Exception during read of base message')
         logging.error(e)
+    return msg
 
-def build_msg_list_from_csv(msg_path, config_csv, csv_var_start, csv_var_end):
 
-    global msg_list
+# Build a message list from a CSV
+def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
 
-    #List of replacement variables & values
-    #We do not insert or remove, only append and clear which means we can assume
-    #that they have the same ordering
-    repl_variables = []
-    repl_values = []
-
-    #Counter variable
-    file_id_counter=0
-    row_counter=0
-    char_counter=0
-
-    #Open the base message File
-    try:
-        with open(msg_path, 'r') as f:
-            msg_string = f.read()
-            logging.debug("Base Message file opened")
-    except Exception as e:
-        logging.error('Exception during read of base message')
-        logging.error(e)
-        msg_string = ""
+    message_list = []
 
     #Open the CSV File and start building Message Files
     with open(config_csv, 'rb') as csvfile:
         logging.debug('CSV File Opened')
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+
+        header_row = reader.next()
+        header_dict = {}
+
         for row in reader:
-            #We can access elements in the row with row[i], where i = column number
-            #First Row is assumed to contain headers
-            if row_counter==0:
-                #This is a header row
-                for element in row:
-                    repl_variables.append(element)
-                    logging.debug('Replacement Variable %s added' % (element))
-            else:
-                #Process the row and build a new Message
+            repl_dict = {}
+            for i in range(0, len(row)):
+                new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
+                repl_dict[new_dict_key] = row[i]
+            message_list.append(replace_variables(msg, repl_dict))
+    return message_list
 
-                #Populate the repl_values list
-                for element in row:
-                    repl_values.append(element)
 
-                #Build the string message to be written to the output file
-                new_str = msg_string
-
-                str_length = len(new_str)
-                while char_counter < str_length:
-                    if new_str[char_counter] == csv_var_start:
-                        #We have found a replacement variable
-                        #We need to replace this block with the
-                        #corresponding repl_value
-                        logging.debug('Replacement variable found in base message')
-                        var_start=char_counter
-                        var_end=0
-                        var_name=""
-                        found_back=False
-                        var_id=-1
-                        while found_back==False and len(new_str) > char_counter:
-                            logging.debug('Find full variable loop entered')
-                            char_counter+=1
-                            if new_str[char_counter] == csv_var_end:
-                                found_back=True
-                                var_end=char_counter
-                                logging.debug('Var Start Position: %s' % (var_start))
-                                logging.debug('Var End Position: %s' % (var_end))
-                            else:
-                                var_name = var_name + new_str[char_counter]
-                                logging.debug('Character added: %s' % (new_str[char_counter]))
-                        i=0
-                        for i in range(0, len(repl_variables)):
-                            if repl_variables[i] == var_name:
-                                var_id=i
-
-                        #We only want to perform a replacement if we found a matching variable name
-                        if var_id > -1:
-                            new_str = new_str[:var_start] + repl_values[var_id] + new_str[var_end+1:]
-                            str_length = len(new_str)
-                            char_counter=var_start
-
-                        logging.debug('Character Counter')
-                    else:
-                        char_counter+=1
-
-                msg_list.append(new_str)
-
-                #Clear the repl_values array for the next iteration
-                del repl_values[:]
-
-                #Zero out the character counter for the next iteration
-                char_counter=0
-
-                #Iterate the file counter
-                file_id_counter+=1
-
-            row_counter+=1
-
+# Select all files in a folder
 def select_files_in_folder(dir, ext):
     for file in os.listdir(dir):
         if file.endswith('.%s' % ext):
             yield os.path.join(dir, file)
 
+# Create an empty file
 def touch(file_path):
     open(file_path, 'a').close()
 
 
+# Post a message from the global variable list to the global socket
+# When messages are sent on a scheduled interval, this is called on a
+# background thread
 def post_message():
-    global resp_time_list
-    global time_list
-    global msg_list
-    global response_list
-    global socket
+    global session
     if len(msg_list) > 0:
         try:
             #Send the message
-            msg = msg_list.pop(0)
-            time_list.append(time.time())
-            socket.send_string(msg + "\n")
+            msg = session.msg_list.pop(0)
+            session.time_list.append(time.time())
+            session.socket.send_string(msg + "\n")
             logging.info("Message sent:")
             logging.info(msg)
 
-            #Recieve the response
-            resp = socket.recv()
-            response_list.append(resp)
-            resp_time_list.append(time.time())
-            logging.info("Response Recieved:")
-            logging.info(resp)
+            if session['out_0mq_connect_type'] == "REQ":
+                #Recieve the response
+                resp = session.socket.recv()
+                session.response_list.append(resp)
+                session.resp_time_list.append(time.time())
+                logging.info("Response Recieved:")
+                logging.info(resp)
         except Exception as e:
             print("Error sending")
             logging.error('Exception')
             logging.error(e)
-            del msg_list[:]
-            socket.close()
+            del session.msg_list[:]
+            session.socket.close()
             sys.exit(1)
     else:
         sys.exit(1)
 
 
-def execute_main():
-    global base_msg
-    global msg_list
-    global socket
+# Execute the main function and start 0-meter
+def execute_main(config_file):
+    global session
+    session = Session()
+    base_msg = session.base_msg
+    msg_list = session.msg_list
 
-    if len(sys.argv) == 1:
-        print("Input Parameters:")
-        print("Configuration File: The file name of the Configuration XML")
-        print("Example: python 0-meter.py config.xml")
-    elif len(sys.argv) != 2:
+    # Set up the session
+    session.configure(sys.argv[1])
 
-        print("Wrong number of Input Parameters")
-
+    #Set up the file logging config
+    if session['log_level'] == 'Debug':
+        logging.basicConfig(filename=session['log_file'], level=logging.DEBUG)
+    elif session['log_level'] == 'Info':
+        logging.basicConfig(filename=session['log_file'], level=logging.INFO)
+    elif session['log_level'] == 'Warning':
+        logging.basicConfig(filename=session['log_file'], level=logging.WARNING)
+    elif session['log_level'] == 'Error':
+        logging.basicConfig(filename=session['log_file'], level=logging.ERROR)
     else:
+        print("Log level not set to one of the given options, defaulting to debug level")
+        logging.basicConfig(filename=session['log_file'], level=logging.DEBUG)
 
-        print("Input Parameters:")
-        print("Configuration File: %s" % (sys.argv[1]))
-
-    #-----------------------------------------------------------------------------#
-    #-----------------------------------------------------------------------------#
-
-        single_message = False
-        multi_message = False
-        include_csv = False
-        span_interval = False
-
-        msg_location = ""
-        msg_folder_location = ""
-        msg_extension = ""
-        interval = 5
-        csv_location = ""
-        csv_var_start = ""
-        csv_var_end = ""
-        out_0mq_connect = ""
-        out_0mq_connect_type = ""
-        timeout = 0
-        log_file = ""
-        log_level = ""
-
-        parse_responses = False
-        fail_on_response = False
-        response_field_path = ""
-        response_success_value = ""
-        response_output_csv = ""
-        response_key_path = ""
-
-        #Parse the config XML and pull the values
-
-        tree = ET.parse(sys.argv[1])
-        root = tree.getroot()
-        for element in root:
-            if element.tag == 'Behavior':
-                for param in element:
-                    if param.tag == 'Single_Message':
-                        if param.text == 'True' or param.text == 'true':
-                            single_message = True
-                    if param.tag == 'Multi_Message':
-                        if param.text == 'True' or param.text == 'true':
-                            multi_message = True
-                    if param.tag == 'Include_CSV':
-                        if param.text == 'True' or param.text == 'true':
-                            include_csv = True
-                    if param.tag == 'Span_Over_Interval':
-                        if param.text == 'True' or param.text == 'true':
-                            span_interval = True
-                    if param.tag == 'Parse_Responses':
-                        if param.text == 'True' or param.text == 'true':
-                            parse_responses = True
-                    if param.tag == 'Fail_On_Response':
-                        if param.text == 'True' or param.text == 'true':
-                            fail_on_response = True
-            if element.tag == 'Message':
-                for param in element:
-                    if param.tag == 'Message_Location':
-                        msg_location = param.text
-                    if param.tag == 'Message_Folder_Location':
-                        msg_folder_location = param.text
-                    if param.tag == 'Message_Extension':
-                        msg_extension = param.text
-                    if param.tag == 'Interval':
-                        interval = float(param.text)
-                    if param.tag == 'CSV_Location':
-                        csv_location = param.text
-                    if param.tag == 'Variable_Start_Character':
-                        csv_var_start = param.text
-                    if param.tag == 'Variable_End_Character':
-                        csv_var_end = param.text
-            if element.tag == 'ZeroMQ':
-                for param in element:
-                    if param.tag == 'Outbound_Connection':
-                        out_0mq_connect = param.text
-                    if param.tag == 'Outbound_Connection_Type':
-                        out_0mq_connect_type = param.text
-                    if param.tag == "Timeout":
-                        timeout = int(float(param.text))
-            if element.tag == 'Logging':
-                for param in element:
-                    if param.tag == 'Log_File':
-                        log_file = param.text
-                    elif param.tag == 'Log_Level':
-                        log_level = param.text
-            if element.tag == 'Response':
-                for param in element:
-                    if param.tag == 'Field_Path':
-                        response_field_path = param.text
-                    if param.tag == 'Key_Path':
-                        response_key_path = param.text
-                    if param.tag == 'Success_Value':
-                        response_success_value = param.text
-                    if param.tag == 'Output_Csv':
-                        response_output_csv = param.text
-
-        #Set up the file logging config
-        if log_level == 'Debug':
-            logging.basicConfig(filename=log_file, level=logging.DEBUG)
-        elif log_level == 'Info':
-            logging.basicConfig(filename=log_file, level=logging.INFO)
-        elif log_level == 'Warning':
-            logging.basicConfig(filename=log_file, level=logging.WARNING)
-        elif log_level == 'Error':
-            logging.basicConfig(filename=log_file, level=logging.ERROR)
+    try:
+        #Attempt to connect to the outbound ZMQ Socket
+        logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
+        logging.debug(session['out_0mq_connect'])
+        session.context = zmq.Context()
+        if (timeout > 0):
+            session.context.setsockopt(zmq.RCVTIMEO, session['timeout'])
+            session.context.setsockopt(zmq.LINGER, 0)
+        if session['out_0mq_connect_type'] == "REQ":
+            session.socket = session.context.socket(zmq.REQ)
+            session.socket.connect(session['out_0mq_connect'])
+        elif session['out_0mq_connect_type'] == "PUB":
+            socket = context.socket(zmq.PUB)
+            socket.connect(session['out_0mq_connect'])
         else:
-            print("Log level not set to one of the given options, defaulting to debug level")
-            logging.basicConfig(filename=log_file, level=logging.DEBUG)
-
-        try:
-            #Attempt to connect to the outbound ZMQ Socket
-            logging.debug("Attempting to connect to outbound 0MQ Socket with connection:")
-            logging.debug(out_0mq_connect)
-            context = zmq.Context()
-            if (timeout > 0):
-                context.setsockopt(zmq.RCVTIMEO, timeout)
-                context.setsockopt(zmq.LINGER, 0)
-            if out_0mq_connect_type == "REQ":
-                socket = context.socket(zmq.REQ)
-                socket.connect(out_0mq_connect)
-            elif out_0mq_connect_type == "PUB":
-                socket = context.socket(zmq.PUB)
-                socket.connect(out_0mq_connect)
-            else:
-                logging.error("Unknown Connection Type encountered")
-                return 0
-
-        #If an exception is thrown while executing the tests,
-        #write that out to the log file
-        except Exception as e:
-            logging.error('Exception')
-            logging.error(e)
-            print("Exception encountered connecting to 0MQ Socket, please see logs for details")
+            logging.error("Unknown Connection Type encountered")
             return 0
+    except Exception as e:
+        logging.error('Exception')
+        logging.error(e)
+        print("Exception encountered connecting to 0MQ Socket, please see logs for details")
+        return 0
 
-        #Now, we need to determine how many messages we're sending and build them
-        if single_message:
-            logging.debug("Building Single Message")
-            num_msg=1
-            build_base_msg(os.path.abspath(msg_location))
-            msg_list.append(base_msg)
-        elif multi_message == True and include_csv == True:
-            logging.debug("Building Messages from CSV")
-            #Pull the correct file paths
-            msg_path = os.path.abspath(msg_location)
-            config_csv = os.path.abspath(csv_location)
+    #Now, we need to determine how many messages we're sending and build them
+    if session['single_message']:
+        logging.debug("Building Single Message")
+        session.num_msg=1
+        base_msg = build_msg( os.path.abspath(msg_location) )
+        msg_list.append( base_msg )
+    elif session['multi_message'] and session['include_csv']:
+        logging.debug("Building Messages from CSV")
+        #Pull the correct file paths
+        msg_path = os.path.abspath(session['msg_location'])
+        config_csv = os.path.abspath(session['csv_location'])
+        base_msg = build_msg(msg_path)
 
-            #Read the CSV, Build the message list, and take it's length for num_msg
-            build_msg_list_from_csv(msg_path, config_csv, csv_var_start, csv_var_end)
-            num_msg=len(msg_list)
+        #Read the CSV, Build the message list, and take it's length for num_msg
+        msg_list = build_msg_list_from_csv(base_msg, config_csv, session['csv_var_start'], session['csv_var_end'])
+        session.num_msg=len(msg_list)
 
-        elif multi_message:
-            logging.debug("Building Messages from Folder")
-            msg_folder = select_files_in_folder(os.path.abspath(msg_folder_location), msg_extension)
+    elif session['multi_message']:
+        logging.debug("Building Messages from Folder")
+        msg_folder = select_files_in_folder(os.path.abspath(session['msg_folder_location']), session['msg_extension'])
 
-            #Build the message list
-            for msg in msg_folder:
-                build_base_msg(os.path.abspath(msg))
-                msg_list.append(base_msg)
+        #Build the message list
+        for path in msg_folder:
+            msg_list.append( build_msg(os.path.abspath(path)) )
+        session.num_msg = len(msg_list)
 
-            num_msg = len(msg_list)
+    #Now, we can execute the test plan
+    if session['span_interval'] == False:
+        logging.debug("Sending Messages all at once")
+        while len(msg_list) > 0:
+            post_message()
+    else:
+        logging.debug("Set up the Background Scheduler")
+        scheduler = BackgroundScheduler()
+        time_interv = num_msg / session['interval']
+        logging.debug("Interval: %s" % (time_interv))
+        interv = IntervalTrigger(seconds=time_interv)
+        scheduler.add_job(post_message, interv)
+        scheduler.start()
+        time.sleep(session['interval'])
 
-        #Now, we can execute the test plan
-        if span_interval == False:
-            logging.debug("Sending Messages all at once")
-            while len(msg_list) > 0:
-                post_message()
-        else:
-            logging.debug("Set up the Background Scheduler")
-            scheduler = BackgroundScheduler()
-            time_interv = num_msg / interval
-            logging.debug("Interval: %s" % (time_interv))
-            interv = IntervalTrigger(seconds=time_interv)
-            scheduler.add_job(post_message, interv)
-            scheduler.start()
-            time.sleep(interval)
-
-        # Perform any necessary response parsing
-        if parse_responses:
-            success_field_list = parse_config_path(response_field_path)
-            success_key_list = parse_config_path(response_key_path)
-            for response in response_list:
+    # Perform any necessary response parsing
+    if session['parse_responses']:
+        success_field_list = parse_config_path(session['response_field_path'])
+        success_key_list = parse_config_path(session['response_key_path'])
+        with open(session['response_output_csv'], 'wb') as csvfile:
+            csvwriter = csv.writer(csvfile, delimiter=',',
+                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            csvwriter.writerow(['Key'])
+            for response in session.response_list:
                 # JSON Response Parsing
-                if (msg_extension == 'json'):
+                if (session['msg_extension'] == 'json'):
                     logging.debug("Parsing Response: %s" % response)
                     parsed_json = None
                     try:
@@ -455,14 +428,26 @@ def execute_main():
                             logging.error('Unable to parse response: %s' % response)
                     if parsed_json is not None:
 
-                        # TO-DO: Write the response key to the CSV
+                        # Write the response key to the CSV
                         key_val = find_json_path(parsed_json, success_key_list)
+                        csvwriter.writerow([key_val])
 
-                        # TO-DO: Test the success value and exit if necessary
-                        if fail_on_response:
+                        # Test the success value and exit if necessary
+                        if session['fail_on_response']:
                             success_val = find_json_path(parsed_json, success_field_list)
+                            if success_val != session['response_success_value']:
+                                sys.exit(1)
     return 0;
 
 
 if __name__ == "__main__":
-    execute_main()
+    if len(sys.argv) == 1:
+        print("Input Parameters:")
+        print("Configuration File: The file name of the Configuration XML")
+        print("Example: python 0-meter.py config.xml")
+    elif len(sys.argv) != 2:
+        print("Wrong number of Input Parameters")
+    else:
+        print("Input Parameters:")
+        print("Configuration File: %s" % (sys.argv[1]))
+    execute_main(sys.argv[1])
