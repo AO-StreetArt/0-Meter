@@ -2,6 +2,7 @@
   <Behavior>
     <Single_Message>True</Single_Message>
     <Parse_Responses>True</Parse_Responses>
+    <Print_Response_Keys>True</Print_Response_Keys>
     <Fail_On_Response>True</Fail_On_Response>
   </Behavior>
   <Message>
