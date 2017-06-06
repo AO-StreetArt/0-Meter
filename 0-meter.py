@@ -231,7 +231,6 @@ def parse_config_path(field_path):
             path_list_tuple = (field_path[0:1], field_path[1:])
             field_path_list.append(path_list_tuple)
             break
-        field_path_list.append(path_list_tuple)
 
     return field_path_list
 
