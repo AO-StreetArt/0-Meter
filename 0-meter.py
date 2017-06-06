@@ -270,6 +270,8 @@ def build_msg(msg_path):
 # Build a message list from a CSV
 def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
 
+    logging.debug("Building message list from base message and csv")
+
     message_list = []
 
     #Open the CSV File and start building Message Files
@@ -279,10 +281,12 @@ def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
 
         header_row = reader.next()
         header_dict = {}
+        logging.debug("Header row retrieved")
 
         for row in reader:
             repl_dict = {}
             for i in range(0, len(row)):
+                logging.debug("Processing CSV Element: %s" % row[i])
                 new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
                 repl_dict[new_dict_key] = row[i]
             message_list.append(replace_variables(msg, repl_dict))
