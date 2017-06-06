@@ -286,12 +286,13 @@ def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
         logging.debug("Header row retrieved")
 
         for row in reader:
+            repl_dict = {}
             for i in range(0, len(row)):
                 logging.debug("Processing CSV Element: %s" % row[i])
                 repl_dict = {}
                 new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
                 repl_dict[new_dict_key] = row[i]
-                message_list.append(replace_variables(msg, repl_dict))
+            message_list.append(replace_variables(msg, repl_dict))
     return message_list
 
 
