@@ -5,7 +5,7 @@
     <Fail_On_Response>True</Fail_On_Response>
   </Behavior>
   <Message>
-    <Message_Location>ping.json</Message_Location>
+    <Message_Location>ci/msg/ping.json</Message_Location>
     <Message_Extension>json</Message_Extension>
   </Message>
   <ZeroMQ>
