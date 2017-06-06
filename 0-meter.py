@@ -427,45 +427,50 @@ def execute_main(config_file):
     if session['parse_responses']:
         success_field_list = parse_config_path(session['response_field_path'])
         success_key_list = parse_config_path(session['response_key_path'])
-        with open(session['response_output_csv'], 'wb') as csvfile:
-            csvwriter = csv.writer(csvfile, delimiter=',',
-                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            csvwriter.writerow(['Key'])
-            for response in session.response_list:
-                # JSON Response Parsing
-                if (session['msg_extension'] == 'json'):
-                    logging.debug("Parsing Response: %s" % response)
-                    parsed_json = None
+        csvfile = None
+        if sys.version_info[0] < 3:
+            csvfile = open(session['response_output_csv'], 'wb')
+        else:
+            csvfile = open(session['response_output_csv'], 'w')
+        csvwriter = csv.writer(csvfile, delimiter=',',
+                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        csvwriter.writerow(['Key'])
+        for response in session.response_list:
+            # JSON Response Parsing
+            if (session['msg_extension'] == 'json'):
+                logging.debug("Parsing Response: %s" % response)
+                parsed_json = None
+                try:
+                    parsed_json = json.loads(response)
+                except Exception as e:
                     try:
-                        parsed_json = json.loads(response)
+                        parsed_json = json.loads(response[1:])
                     except Exception as e:
-                        try:
-                            parsed_json = json.loads(response[1:])
-                        except Exception as e:
-                            logging.error('Unable to parse response: %s' % response)
-                    if parsed_json is not None:
+                        logging.error('Unable to parse response: %s' % response)
+                if parsed_json is not None:
 
-                        # Write the response key to the CSV
-                        key_val = find_json_path(parsed_json, success_key_list)
+                    # Write the response key to the CSV
+                    key_val = find_json_path(parsed_json, success_key_list)
+                    try:
+                        csvwriter.writerow([key_val])
+                    except Exception as e:
+                        logging.error("Exception while writing response key")
+                        logging.error(e)
+                        sys.exit(1)
+
+                    # Test the success value and exit if necessary
+                    if session['fail_on_response']:
                         try:
-                            csvwriter.writerow([key_val])
+                            success_val = find_json_path(parsed_json, success_field_list)
+                            logging.debug("Checking json success value")
+                            if int(success_val) != int(session['response_success_value']):
+                                logging.error("Incorrect Success value: %s != %s" % (success_val, session['response_success_value']))
+                                sys.exit(1)
                         except Exception as e:
-                            logging.error("Exception while writing response key")
+                            logging.error("Exception while comparing response success value")
                             logging.error(e)
                             sys.exit(1)
-
-                        # Test the success value and exit if necessary
-                        if session['fail_on_response']:
-                            try:
-                                success_val = find_json_path(parsed_json, success_field_list)
-                                logging.debug("Checking json success value")
-                                if int(success_val) != int(session['response_success_value']):
-                                    logging.error("Incorrect Success value: %s != %s" % (success_val, session['response_success_value']))
-                                    sys.exit(1)
-                            except Exception as e:
-                                logging.error("Exception while comparing response success value")
-                                logging.error(e)
-                                sys.exit(1)
+        csvfile.close()
     return 0;
 
 
