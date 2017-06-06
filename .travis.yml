@@ -6,7 +6,7 @@ python:
 install:
   - "pip install apscheduler pyzmq"
 script:
-  - python testserver.py &
+  - python ci/scripts/testserver.py &
   - python 0-meter.py config.xml
   - cat hello_world.log
   - python 0-meter.py ci/ping.xml
