@@ -11,5 +11,6 @@ script:
   - cat hello_world.log
   - python 0-meter.py ci/ping.xml
   - cat ping.log
+  - cat thanks.csv
   - python 0-meter.py ci/csv_test.xml
   - cat csv_test.log
