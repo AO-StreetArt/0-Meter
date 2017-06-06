@@ -2,12 +2,16 @@
 language: python
 python:
   - "2.7"
+  - "3.5"
   - "pypy"
 install:
   - "pip install apscheduler pyzmq"
 script:
-  - python testserver.py &
-  - python 0-meter.py ping.xml
-  - cat ping.log
+  - python ci/scripts/testserver.py &
   - python 0-meter.py config.xml
   - cat hello_world.log
+  - python 0-meter.py ci/ping.xml
+  - cat ping.log
+  - cat thanks.csv
+  - python 0-meter.py ci/csv_test.xml
+  - cat csv_test.log
