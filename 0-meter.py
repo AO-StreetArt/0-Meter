@@ -292,7 +292,7 @@ def touch(file_path):
 # background thread
 def post_message():
     global session
-    if len(msg_list) > 0:
+    if len(session.msg_list) > 0:
         try:
             #Send the message
             msg = session.msg_list.pop(0)
