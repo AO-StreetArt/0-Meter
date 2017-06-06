@@ -90,6 +90,7 @@ class Session(object):
         self.param_list['log_level'] = ""
 
         self.param_list['parse_responses'] = False
+        self.param_list['print_response_keys'] = False
         self.param_list['fail_on_response'] = False
         self.param_list['response_field_path'] = ""
         self.param_list['response_success_value'] = ""
