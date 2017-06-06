@@ -207,7 +207,7 @@ def parse_config_path(field_path):
     else:
         path_list_tuple = ('.', field_path)
         field_path = ""
-    logging.debug("Writing first tuple to path list: %s" % path_list_tuple)
+    logging.debug("Writing first tuple to path list: %s -- %s" % (path_list_tuple[0], path_list_tuple[1]))
     field_path_list.append(path_list_tuple)
     while( len(field_path) > 0 ):
         logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
@@ -240,10 +240,15 @@ def find_json_path(json_doc, path_list):
     # Iterate over the path_list to get to the element we want to match against
     for path_element in path_list:
         logging.debug("Entering Path Element %s -- %s" % (path_element[0], path_element[1]))
-        if (path_element[0] == '.'):
-            current_elt = current_elt[path_element[1]]
-        elif (path_element[0] == '['):
-            current_elt = current_elt[int(path_element[1])]
+        try:
+            if (path_element[0] == '.'):
+                current_elt = current_elt[path_element[1]]
+            elif (path_element[0] == '['):
+                current_elt = current_elt[int(path_element[1])]
+        except Exception as e:
+            logging.error("Exception during retrieval of JSON Value")
+            logging.error(e)
+            system.exit(1)
     return current_elt
 
 
