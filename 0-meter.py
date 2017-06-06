@@ -277,25 +277,29 @@ def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
     message_list = []
 
     #Open the CSV File and start building Message Files
-    with open(config_csv, 'rb') as csvfile:
-        logging.debug('CSV File Opened')
-        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    csvfile = None
+    if sys.version_info[0] < 3:
+        csvfile = open(config_csv, 'rb')
+    else:
+        csvfile = open(config_csv, 'r')
+    logging.debug('CSV File Opened')
+    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
 
-        if sys.version_info[0] < 3:
-            header_row = reader.next()
-        else:
-            header_row = reader.__next__()
-        header_dict = {}
-        logging.debug("Header row retrieved")
+    if sys.version_info[0] < 3:
+        header_row = reader.next()
+    else:
+        header_row = reader.__next__()
+    header_dict = {}
+    logging.debug("Header row retrieved")
 
-        for row in reader:
+    for row in reader:
+        repl_dict = {}
+        for i in range(0, len(row)):
+            logging.debug("Processing CSV Element: %s" % row[i])
             repl_dict = {}
-            for i in range(0, len(row)):
-                logging.debug("Processing CSV Element: %s" % row[i])
-                repl_dict = {}
-                new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
-                repl_dict[new_dict_key] = row[i]
-            message_list.append(replace_variables(msg, repl_dict))
+            new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
+            repl_dict[new_dict_key] = row[i]
+        message_list.append(replace_variables(msg, repl_dict))
     return message_list
 
 
