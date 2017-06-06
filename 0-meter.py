@@ -437,6 +437,8 @@ def execute_main(config_file):
     # Perform any necessary response parsing
     if session['parse_responses']:
 
+        csvfile = None
+
         # Pull the paths for configured fields
         if session['fail_on_response']:
             success_field_list = parse_config_path(session['response_field_path'])
@@ -444,7 +446,6 @@ def execute_main(config_file):
             success_key_list = parse_config_path(session['response_key_path'])
 
             # Set up the CSV File
-            csvfile = None
             if sys.version_info[0] < 3:
                 csvfile = open(session['response_output_csv'], 'wb')
             else:
@@ -490,7 +491,8 @@ def execute_main(config_file):
                             logging.error("Exception while comparing response success value")
                             logging.error(e)
                             sys.exit(1)
-        csvfile.close()
+        if csvfile is not None:
+            csvfile.close()
     return 0;
 
 
