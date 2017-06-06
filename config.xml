@@ -1,20 +1,10 @@
 <Configuration>
   <Behavior>
-    <Single_Message></Single_Message>
     <Multi_Message>True</Multi_Message>
-    <Include_CSV></Include_CSV>
-    <Span_Over_Interval></Span_Over_Interval>
-    <Parse_Responses></Parse_Responses>
-    <Fail_On_Response></Fail_On_Response>
   </Behavior>
   <Message>
-    <Message_Location></Message_Location>
     <Message_Folder_Location>messages</Message_Folder_Location>
     <Message_Extension>txt</Message_Extension>
-    <Interval></Interval>
-    <CSV_Location></CSV_Location>
-    <Variable_Start_Character></Variable_Start_Character>
-    <Variable_End_Character></Variable_End_Character>
   </Message>
   <ZeroMQ>
     <Outbound_Connection>tcp://localhost:5555</Outbound_Connection>
@@ -24,10 +14,4 @@
     <Log_File>hello_world.log</Log_File>
     <Log_Level>Debug</Log_Level>
   </Logging>
-  <Response>
-    <Field_Path></Field_Path>
-    <Key_Path></Key_Path>
-    <Success_Value></Success_Value>
-    <Output_Csv></Output_Csv>
-  </Response>
 </Configuration>
