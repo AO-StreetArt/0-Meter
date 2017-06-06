@@ -445,7 +445,7 @@ def execute_main(config_file):
                         key_val = find_json_path(parsed_json, success_key_list)
                         try:
                             csvwriter.writerow([key_val])
-                        catch Exception as e:
+                        except Exception as e:
                             logging.error("Exception while writing response key")
                             logging.error(e)
                             sys.exit(1)
@@ -456,7 +456,7 @@ def execute_main(config_file):
                             success_val = find_json_path(parsed_json, success_field_list)
                             if success_val != session['response_success_value']:
                                 sys.exit(1)
-                            catch Exception as e:
+                            except Exception as e:
                                 logging.error("Exception while comparing response success value")
                                 logging.error(e)
                                 sys.exit(1)
