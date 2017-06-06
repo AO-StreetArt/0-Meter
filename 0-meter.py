@@ -180,9 +180,11 @@ def replace_variables(msg, variable_dict):
     # So, we use the sys module to detect at run time and use the correct method
     if sys.version_info[0] < 3:
         for key, val in variable_dict.iteritems():
+            logging.debug("Replacing Variable %s with Value %s" % (key, val))
             msg = msg.replace(key, val)
     else:
         for key, val in variable_dict.items():
+            logging.debug("Replacing Variable %s with Value %s" % (key, val))
             msg = msg.replace(key, val)
     return msg
 
