@@ -443,12 +443,22 @@ def execute_main(config_file):
 
                         # Write the response key to the CSV
                         key_val = find_json_path(parsed_json, success_key_list)
-                        csvwriter.writerow([key_val])
+                        try:
+                            csvwriter.writerow([key_val])
+                        catch Exception as e:
+                            logging.error("Exception while writing response key")
+                            logging.error(e)
+                            sys.exit(1)
 
                         # Test the success value and exit if necessary
                         if session['fail_on_response']:
+                            try:
                             success_val = find_json_path(parsed_json, success_field_list)
                             if success_val != session['response_success_value']:
+                                sys.exit(1)
+                            catch Exception as e:
+                                logging.error("Exception while comparing response success value")
+                                logging.error(e)
                                 sys.exit(1)
     return 0;
 
