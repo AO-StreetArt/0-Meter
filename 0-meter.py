@@ -208,7 +208,7 @@ def parse_config_path(field_path):
         path_list_tuple = ('.', field_path)
         field_path = ""
     path_list.append(path_list_tuple)
-    while( !(field_path.empty()) ):
+    while( len(field_path) > 0 ):
         logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
 
         # Find the first delimiter
