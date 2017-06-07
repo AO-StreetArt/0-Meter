@@ -214,7 +214,7 @@ def parse_config_path(field_path):
     else:
         path_list_tuple = ('.', field_path)
         field_path_list.append(path_list_tuple)
-        return 0
+        return field_path_list
     logging.debug("Writing first tuple to path list: %s -- %s" % (path_list_tuple[0], path_list_tuple[1]))
     while( True ):
         logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
@@ -437,6 +437,8 @@ def execute_main(config_file):
     if session['parse_responses']:
 
         csvfile = None
+        success_field_list = None
+        success_key_list = None
 
         # Pull the paths for configured fields
         if session['fail_on_response']:
