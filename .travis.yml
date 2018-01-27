@@ -15,6 +15,6 @@ script:
   - cat thanks.csv
   - python 0-meter.py ci/csv_test.xml
   - cat csv_test.log
-  - /ci/scripts/bad_ping_test.sh
+  - ci/scripts/bad_ping_test.sh
   - cat ping_bad.log
   - cat ping_bad.csv
