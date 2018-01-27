@@ -185,6 +185,9 @@ def execute_main(config_file):
             logging.error("No Kafka Output Found, but expected")
             sys.exit(1)
 
+    if parsing_stream is not None:
+        parsing_stream.close()
+
     return 0;
 
 
