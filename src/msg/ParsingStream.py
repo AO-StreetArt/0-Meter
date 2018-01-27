@@ -35,6 +35,7 @@ class ParsingStream(object):
         self._print_response_keys = session['print_response_keys']
         self._success_field_list = None
         self._success_key_list = None
+        self._csvfile = None
 
         # Pull the paths for configured fields
         if session['fail_on_response']:
