@@ -6,11 +6,6 @@ python:
   - "pypy"
 install:
   - "pip install apscheduler pyzmq kafka-python"
-  - wget http://apache.claz.org/kafka/1.0.0/kafka_2.11-1.0.0.tgz
-  - tar -xzf kafka_2.11-1.0.0.tgz
-  - kafka_2.11-1.0.0/bin/zookeeper-server-start.sh kafka_2.11-1.0.0/config/zookeeper.properties &
-  - kafka_2.11-1.0.0/bin/kafka-server-start.sh kafka_2.11-1.0.0/config/server.properties &
-  - kafka_2.11-1.0.0/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic _dvs
 script:
   - python ci/scripts/testserver.py &
   - python 0-meter.py config.xml
