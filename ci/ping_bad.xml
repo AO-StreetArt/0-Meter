@@ -1,0 +1,27 @@
+<Configuration>
+  <Behavior>
+    <Single_Message>True</Single_Message>
+    <Parse_Responses>True</Parse_Responses>
+    <Print_Response_Keys>True</Print_Response_Keys>
+    <Fail_On_Response>True</Fail_On_Response>
+  </Behavior>
+  <Message>
+    <Message_Location>ci/msg/ping.json</Message_Location>
+    <Message_Extension>json</Message_Extension>
+  </Message>
+  <ZeroMQ>
+    <Outbound_Connection>tcp://localhost:1234</Outbound_Connection>
+    <Outbound_Connection_Type>REQ</Outbound_Connection_Type>
+    <Timeout>5000</Timeout>
+  </ZeroMQ>
+  <Logging>
+    <Log_File>ping_bad.log</Log_File>
+    <Log_Level>Debug</Log_Level>
+  </Logging>
+  <Response>
+    <Field_Path>responses[0.codes[1</Field_Path>
+    <Key_Path>responses[0.msg</Key_Path>
+    <Success_Value>2</Success_Value>
+    <Output_Csv>ping_bad.csv</Output_Csv>
+  </Response>
+</Configuration>
