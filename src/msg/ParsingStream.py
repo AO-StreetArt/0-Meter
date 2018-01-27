@@ -27,8 +27,8 @@ import sys
 import csv
 from ..Utils import get_exception
 
-from ParsingRules import SuccessValidationRule
-from ParseMessage import find_json_path
+from src.msg.ParsingRules import SuccessValidationRule
+from src.msg.ParseMessage import find_json_path
 
 class ParsingStream(object):
     def __init__(self, rule_list, session):

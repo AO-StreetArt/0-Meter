@@ -34,6 +34,11 @@ updating values with those from a separate CSV.
 @author: alex barry
 """
 
+from src.session.Session import Session
+from src.msg.BuildMessage import generate_msg_list
+from src.msg.ParsingStream import ParsingStream
+from src.Utils import select_files_in_folder, touch
+
 import sys
 import logging
 import zmq
@@ -54,11 +59,6 @@ try:
 except Exception as e:
     print('Unable to load Kafka libraries due to error:')
     print(e)
-
-from src.session.Session import Session
-from src.msg.BuildMessage import generate_msg_list
-from src.msg.ParsingStream import ParsingStream
-from src.Utils import select_files_in_folder, touch
 
 # Define the single global session
 session = None

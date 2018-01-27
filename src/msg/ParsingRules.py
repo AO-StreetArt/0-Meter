@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 import logging
 import sys
-from ParseMessage import find_json_path
+from src.msg.ParseMessage import find_json_path
 from ..Utils import get_exception
 
 class ParsingRule(object):
