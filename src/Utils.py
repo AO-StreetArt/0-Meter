@@ -23,6 +23,8 @@ THE SOFTWARE.
 """
 
 import os
+import sys
+import traceback
 
 # Select all files in a folder
 def select_files_in_folder(dir, ext):
@@ -33,3 +35,8 @@ def select_files_in_folder(dir, ext):
 # Create an empty file
 def touch(file_path):
     open(file_path, 'a').close()
+
+# Helper function to get an exception
+def get_exception():
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    return repr(traceback.format_exception(exc_type, exc_value, exc_traceback))

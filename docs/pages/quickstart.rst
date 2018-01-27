@@ -14,19 +14,16 @@ Before downloading 0-Meter, you will need a few things installed:
 * Python 2.7 - Can be downloaded [here] (https://www.python.org/)
 * pyzmq
 * apscheduler
+* kafka-python
 
 Once you download Python, you can run the below commands to install the other dependencies:
 
 * Linux
 
-`sudo pip install apscheduler`
-
-`sudo pip install pyzmq`
-
+`sudo pip install apscheduler pyzmq kafka-python`
 * Windows
 
-`python -m pip install apscheduler`
-`python -m pip install pyzmq`
+`python -m pip install apscheduler pyzmq kafka-python`
 
 Use
 ---

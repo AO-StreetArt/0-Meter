@@ -49,18 +49,26 @@ except Exception as e:
     print('Unable to load scheduling libraries due to error:')
     print(e)
 
+try:
+    from kafka import KafkaConsumer
+except Exception as e:
+    print('Unable to load Kafka libraries due to error:')
+    print(e)
+
 from src.session.Session import Session
 from src.msg.BuildMessage import generate_msg_list
-from src.msg.ParseMessage import parse_responses
+from src.msg.ParsingStream import ParsingStream
 from src.Utils import select_files_in_folder, touch
 
 # Define the single global session
 session = None
+parsing_stream = None
 
 # Post a message from the global variable list to the global socket
 # When messages are sent on a scheduled interval, this is called on a
 # background thread
 def post_message():
+    global parsing_stream
     global session
     if len(session.msg_list) > 0:
         try:
@@ -78,6 +86,9 @@ def post_message():
                 session.resp_time_list.append(time.time())
                 logging.info("Response Recieved:")
                 logging.info(resp)
+                # Apply any parsing rules and print the response
+                if parsing_stream is not None:
+                    parsing_stream.stream_message(resp)
         except Exception as e:
             print("Error sending")
             logging.error('Exception')
@@ -89,6 +100,7 @@ def post_message():
 
 # Execute the main function and start 0-meter
 def execute_main(config_file):
+    global parsing_stream
     global session
     session = Session()
 
@@ -134,6 +146,17 @@ def execute_main(config_file):
     #Now, we need to determine how many messages we're sending and build them
     session = generate_msg_list(session)
 
+    # Build the parsing stream, if necessary, to apply our parsing rules and
+    # print output
+    if session['parse_responses']:
+        rule_list = []
+        if session['fail_on_response']:
+            rule_list.append('Success_Validation')
+        parsing_stream = ParsingStream(rule_list, session)
+
+    if session['connect_to_kafka']:
+        kafka_consumer = KafkaConsumer(session['kafka_topic'], bootstrap_servers=session['kafka_address'])
+
     #Now, we can execute the test plan
     if session['span_interval'] == False:
         logging.debug("Sending Messages all at once")
@@ -149,9 +172,18 @@ def execute_main(config_file):
         scheduler.start()
         time.sleep(session['interval'])
 
-    # Perform any necessary response parsing
-    if session['parse_responses']:
-        parse_responses(session)
+    # Look for a message in Kafka
+    # Connect to Kafka
+    if session['connect_to_kafka']:
+        counter = 0
+        for kafka_msg in kafka_consumer:
+            counter += 1
+            if session['print_kafka_output']:
+                logging.info(kafka_msg)
+        if session['expect_kafka_output'] and counter == 0:
+            print("No Kafka Output Found, but expected")
+            logging.error("No Kafka Output Found, but expected")
+            sys.exit(1)
 
     return 0;
 

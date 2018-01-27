@@ -87,6 +87,10 @@ class Session(object):
         self.param_list['response_success_value'] = ""
         self.param_list['response_output_csv'] = ""
         self.param_list['response_key_path'] = ""
+        self.param_list['parse_rule_list'] = []
+        self.param_list['connect_to_kafka'] = False
+        self.param_list['print_kafka_output'] = False
+        self.param_list['expect_kafka_output'] = False
 
         #Parse the config XML and pull the values
         tree = ET.parse(sys.argv[1])
@@ -115,6 +119,17 @@ class Session(object):
                     if param.tag == 'Fail_On_Response':
                         if param.text == 'True' or param.text == 'true':
                             self.param_list['fail_on_response'] = True
+                    if param.tag == 'Parsing_Rule_List':
+                        for rule in param:
+                            self.param_list['parse_rule_list'].append(rule.tag)
+                    if param.tag == 'Print_Kafka_Responses':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['print_kafka_output'] = True
+                            self.param_list['connect_to_kafka'] = True
+                    if param.tag == 'Assert_Kafka_Responses':
+                        if param.text == 'True' or param.text == 'true':
+                            self.param_list['expect_kafka_output'] = True
+                            self.param_list['connect_to_kafka'] = True
             if element.tag == 'Message':
                 for param in element:
                     if param.tag == 'Message_Location':
@@ -155,6 +170,10 @@ class Session(object):
                         self.param_list['response_success_value'] = param.text
                     if param.tag == 'Output_Csv':
                         self.param_list['response_output_csv'] = param.text
+                    if param.tag == 'Kafka_Broker':
+                        self.param_list['kafka_address'] = param.text
+                    if param.tag == 'Kafka_Topic':
+                        self.param_list['kafka_topic'] = param.text
 
     def __str__(self):
         ret_str = "Session:\n"
