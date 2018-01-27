@@ -27,6 +27,8 @@ import logging
 import csv
 import os
 
+from ..Utils import select_files_in_folder, touch
+
 # Populate the Base Message Global Variable
 def build_msg(msg_path):
     #Open the base message File

@@ -28,6 +28,8 @@ import sys
 import os
 import csv
 
+from ..Utils import select_files_in_folder, touch
+
 # Find a JSON Element within the specified doc, given the specified parsed path list
 def find_json_path(json_doc, path_list):
     current_elt = json_doc
