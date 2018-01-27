@@ -7,7 +7,7 @@
     <Message_Extension>txt</Message_Extension>
   </Message>
   <ZeroMQ>
-    <Outbound_Connection>tcp://localhost:5555</Outbound_Connection>
+    <Outbound_Connection>tcp://localhost:1234</Outbound_Connection>
     <Outbound_Connection_Type>REQ</Outbound_Connection_Type>
     <Timeout>5000</Timeout>
   </ZeroMQ>

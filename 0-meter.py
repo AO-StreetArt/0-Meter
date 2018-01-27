@@ -1,8 +1,27 @@
-# -*- coding: utf-8 -*-
 """
-Created on Sat Mar  5 23:47:16 2016
+MIT License Block
 
--0-Meter Main Class-
+Copyright (c) 2015 Alex Barry
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+-----------------------------------------------------------------------------
 
 0-Meter is a configurable load testing framework for 0MQ-Based
 Messaging Applications.
@@ -15,7 +34,11 @@ updating values with those from a separate CSV.
 @author: alex barry
 """
 
-import xml.etree.ElementTree as ET
+from src.session.Session import Session
+from src.msg.BuildMessage import generate_msg_list
+from src.msg.ParsingStream import ParsingStream
+from src.Utils import select_files_in_folder, touch
+
 import sys
 import logging
 import zmq
@@ -31,296 +54,21 @@ except Exception as e:
     print('Unable to load scheduling libraries due to error:')
     print(e)
 
-
-# There is a single Global Session
-# This class stores config variables,
-# as well as global variables
-class Session(object):
-    def __init__(self):
-        self.param_list = {}
-
-        #Global Variables
-        self.msg_list = []
-        self.response_list = []
-        self.context = None
-        self.socket = None
-        self.num_msg = 0
-        self.base_msg = ""
-
-        #Global Variables for tracking response times
-        self.resp_time_list = []
-        self.time_list = []
-
-    def teardown(self):
-        self.param_list.clear()
-
-    def __len__(self):
-        return len(self.param_list)
-
-    def __getitem__(self, key):
-        return self.param_list[key]
-
-    def __setitem__(self, key, value):
-        self.param_list[key] = value
-
-    def __delitem__(self, key):
-        del self.param_list[key]
-
-    def __iter__(self):
-        return iter(self.param_list)
-
-    def configure(self, config_file):
-        # Read the config file
-        self.param_list['single_message'] = False
-        self.param_list['multi_message'] = False
-        self.param_list['include_csv'] = False
-        self.param_list['span_interval'] = False
-
-        self.param_list['msg_location'] = ""
-        self.param_list['msg_folder_location'] = ""
-        self.param_list['msg_extension'] = ""
-        self.param_list['interval'] = 5
-        self.param_list['csv_location'] = ""
-        self.param_list['csv_var_start'] = ""
-        self.param_list['csv_var_end'] = ""
-        self.param_list['out_0mq_connect'] = ""
-        self.param_list['out_0mq_connect_type'] = ""
-        self.param_list['timeout'] = 0
-        self.param_list['log_file'] = ""
-        self.param_list['log_level'] = ""
-
-        self.param_list['parse_responses'] = False
-        self.param_list['print_response_keys'] = False
-        self.param_list['fail_on_response'] = False
-        self.param_list['response_field_path'] = ""
-        self.param_list['response_success_value'] = ""
-        self.param_list['response_output_csv'] = ""
-        self.param_list['response_key_path'] = ""
-
-        #Parse the config XML and pull the values
-        tree = ET.parse(sys.argv[1])
-        root = tree.getroot()
-        for element in root:
-            if element.tag == 'Behavior':
-                for param in element:
-                    if param.tag == 'Single_Message':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['single_message'] = True
-                    if param.tag == 'Multi_Message':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['multi_message'] = True
-                    if param.tag == 'Include_CSV':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['include_csv'] = True
-                    if param.tag == 'Span_Over_Interval':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['span_interval'] = True
-                    if param.tag == 'Parse_Responses':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['parse_responses'] = True
-                    if param.tag == 'Print_Response_Keys':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['print_response_keys'] = True
-                    if param.tag == 'Fail_On_Response':
-                        if param.text == 'True' or param.text == 'true':
-                            self.param_list['fail_on_response'] = True
-            if element.tag == 'Message':
-                for param in element:
-                    if param.tag == 'Message_Location':
-                        self.param_list['msg_location'] = param.text
-                    if param.tag == 'Message_Folder_Location':
-                        self.param_list['msg_folder_location'] = param.text
-                    if param.tag == 'Message_Extension':
-                        self.param_list['msg_extension'] = param.text
-                    if param.tag == 'Interval':
-                        self.param_list['interval'] = float(param.text)
-                    if param.tag == 'CSV_Location':
-                        self.param_list['csv_location'] = param.text
-                    if param.tag == 'Variable_Start_Character':
-                        self.param_list['csv_var_start'] = param.text
-                    if param.tag == 'Variable_End_Character':
-                        self.param_list['csv_var_end'] = param.text
-            if element.tag == 'ZeroMQ':
-                for param in element:
-                    if param.tag == 'Outbound_Connection':
-                        self.param_list['out_0mq_connect'] = param.text
-                    if param.tag == 'Outbound_Connection_Type':
-                        self.param_list['out_0mq_connect_type'] = param.text
-                    if param.tag == "Timeout":
-                        self.param_list['timeout'] = int(float(param.text))
-            if element.tag == 'Logging':
-                for param in element:
-                    if param.tag == 'Log_File':
-                        self.param_list['log_file'] = param.text
-                    elif param.tag == 'Log_Level':
-                        self.param_list['log_level'] = param.text
-            if element.tag == 'Response':
-                for param in element:
-                    if param.tag == 'Field_Path':
-                        self.param_list['response_field_path'] = param.text
-                    if param.tag == 'Key_Path':
-                        self.param_list['response_key_path'] = param.text
-                    if param.tag == 'Success_Value':
-                        self.param_list['response_success_value'] = param.text
-                    if param.tag == 'Output_Csv':
-                        self.param_list['response_output_csv'] = param.text
-
-    def __str__(self):
-        ret_str = "Session:\n"
-        for key, val in self.param_list.iteritems():
-            ret_str = ret_str + "%s: %s\n" % (key, val)
-        return ret_str
-
+try:
+    from kafka import KafkaConsumer
+except Exception as e:
+    print('Unable to load Kafka libraries due to error:')
+    print(e)
 
 # Define the single global session
 session = None
-
-
-# Replace a a set of variables within a message
-# base_text - The message contianing variables
-# variable_dict - A dictionary of variable names & values
-def replace_variables(msg, variable_dict):
-    # The dict uses different functions to return list generators of key/value pairs in 2.x vs 3.x
-    # So, we use the sys module to detect at run time and use the correct method
-    if sys.version_info[0] < 3:
-        for key, val in variable_dict.iteritems():
-            logging.debug("Replacing Variable %s with Value %s" % (key, val))
-            msg = msg.replace(key, val)
-    else:
-        for key, val in variable_dict.items():
-            logging.debug("Replacing Variable %s with Value %s" % (key, val))
-            msg = msg.replace(key, val)
-    return msg
-
-
-# Parse a configuration path in the format root.obj[1
-def parse_config_path(field_path):
-    logging.debug("Entering Parsing of Response Field Path")
-    # Parse the Field Path
-    field_path_list = []
-    # Pull the first value in assuming the message is an object
-    cut_index = 0
-    pd_index = field_path.find('.')
-    ar_index = field_path.find('[')
-    if pd_index < ar_index:
-        cut_index = pd_index
-    else:
-        cut_index = ar_index
-    path_list_tuple = None
-    if cut_index > -1:
-        path_list_tuple = ('.', field_path[0:cut_index])
-        field_path_list.append(path_list_tuple)
-        field_path = field_path[cut_index:]
-    else:
-        path_list_tuple = ('.', field_path)
-        field_path_list.append(path_list_tuple)
-        return field_path_list
-    logging.debug("Writing first tuple to path list: %s -- %s" % (path_list_tuple[0], path_list_tuple[1]))
-    while( True ):
-        logging.debug("Parsing Iteration of Response Field Path, remaining field path: %s" % field_path)
-
-        # Find the first delimiter
-        cut_index = 0
-        pd_index = field_path.find('.',1)
-        ar_index = field_path.find('[',1)
-        if pd_index > -1 and (pd_index < ar_index or ar_index < 0):
-            cut_index = pd_index
-        else:
-            cut_index = ar_index
-
-        # If another . or [ is found
-        if cut_index > -1:
-            path_list_tuple = (field_path[0:1], field_path[1:cut_index])
-            field_path_list.append(path_list_tuple)
-            field_path = field_path[cut_index:]
-        else:
-            path_list_tuple = (field_path[0:1], field_path[1:])
-            field_path_list.append(path_list_tuple)
-            break
-
-    return field_path_list
-
-
-# Find a JSON Element within the specified doc, given the specified parsed path list
-def find_json_path(json_doc, path_list):
-    current_elt = json_doc
-    # Iterate over the path_list to get to the element we want to match against
-    for path_element in path_list:
-        logging.debug("Entering Path Element %s -- %s" % (path_element[0], path_element[1]))
-        try:
-            if (path_element[0] == '.'):
-                current_elt = current_elt[path_element[1]]
-            elif (path_element[0] == '['):
-                current_elt = current_elt[int(path_element[1])]
-        except Exception as e:
-            logging.error("Exception during retrieval of JSON Value")
-            logging.error(e)
-            sys.exit(1)
-    return current_elt
-
-
-# Populate the Base Message Global Variable
-def build_msg(msg_path):
-    #Open the base message File
-    msg = None
-    try:
-        with open(msg_path, 'r') as f:
-            msg = f.read()
-            logging.debug("Base Message file opened")
-    except Exception as e:
-        logging.error('Exception during read of base message')
-        logging.error(e)
-    return msg
-
-
-# Build a message list from a CSV
-def build_msg_list_from_csv(msg, config_csv, csv_var_start, csv_var_end):
-
-    logging.debug("Building message list from base message and csv")
-
-    message_list = []
-
-    #Open the CSV File and start building Message Files
-    csvfile = None
-    if sys.version_info[0] < 3:
-        csvfile = open(config_csv, 'rb')
-    else:
-        csvfile = open(config_csv, 'r')
-    logging.debug('CSV File Opened')
-    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-
-    if sys.version_info[0] < 3:
-        header_row = reader.next()
-    else:
-        header_row = reader.__next__()
-    header_dict = {}
-    logging.debug("Header row retrieved")
-
-    for row in reader:
-        repl_dict = {}
-        for i in range(0, len(row)):
-            logging.debug("Processing CSV Element: %s" % row[i])
-            new_dict_key = "%s%s%s" % (csv_var_start, header_row[i], csv_var_end)
-            repl_dict[new_dict_key] = row[i]
-        message_list.append(replace_variables(msg, repl_dict))
-    return message_list
-
-
-# Select all files in a folder
-def select_files_in_folder(dir, ext):
-    for file in os.listdir(dir):
-        if file.endswith('.%s' % ext):
-            yield os.path.join(dir, file)
-
-# Create an empty file
-def touch(file_path):
-    open(file_path, 'a').close()
-
+parsing_stream = None
 
 # Post a message from the global variable list to the global socket
 # When messages are sent on a scheduled interval, this is called on a
 # background thread
 def post_message():
+    global parsing_stream
     global session
     if len(session.msg_list) > 0:
         try:
@@ -338,6 +86,9 @@ def post_message():
                 session.resp_time_list.append(time.time())
                 logging.info("Response Recieved:")
                 logging.info(resp)
+                # Apply any parsing rules and print the response
+                if parsing_stream is not None:
+                    parsing_stream.stream_message(resp)
         except Exception as e:
             print("Error sending")
             logging.error('Exception')
@@ -349,6 +100,7 @@ def post_message():
 
 # Execute the main function and start 0-meter
 def execute_main(config_file):
+    global parsing_stream
     global session
     session = Session()
 
@@ -392,31 +144,18 @@ def execute_main(config_file):
         sys.exit(1)
 
     #Now, we need to determine how many messages we're sending and build them
-    if session['single_message']:
-        logging.debug("Building Single Message")
-        session.num_msg=1
-        session.base_msg = build_msg( os.path.abspath(session['msg_location']) )
-        session.msg_list.append( session.base_msg )
-    elif session['multi_message'] and session['include_csv']:
-        logging.debug("Building Messages from CSV")
-        #Pull the correct file paths
-        msg_path = os.path.abspath(session['msg_location'])
-        config_csv = os.path.abspath(session['csv_location'])
-        session.base_msg = build_msg(msg_path)
-        logging.debug("Base Message: %s" % session.base_msg)
+    session = generate_msg_list(session)
 
-        #Read the CSV, Build the message list, and take it's length for num_msg
-        session.msg_list = build_msg_list_from_csv(session.base_msg, config_csv, session['csv_var_start'], session['csv_var_end'])
-        session.num_msg=len(session.msg_list)
+    # Build the parsing stream, if necessary, to apply our parsing rules and
+    # print output
+    if session['parse_responses']:
+        rule_list = []
+        if session['fail_on_response']:
+            rule_list.append('Success_Validation')
+        parsing_stream = ParsingStream(rule_list, session)
 
-    elif session['multi_message']:
-        logging.debug("Building Messages from Folder")
-        msg_folder = select_files_in_folder(os.path.abspath(session['msg_folder_location']), session['msg_extension'])
-
-        #Build the message list
-        for path in msg_folder:
-            session.msg_list.append( build_msg(os.path.abspath(path)) )
-        session.num_msg = len(session.msg_list)
+    if session['connect_to_kafka']:
+        kafka_consumer = KafkaConsumer(session['kafka_topic'], bootstrap_servers=session['kafka_address'])
 
     #Now, we can execute the test plan
     if session['span_interval'] == False:
@@ -433,67 +172,19 @@ def execute_main(config_file):
         scheduler.start()
         time.sleep(session['interval'])
 
-    # Perform any necessary response parsing
-    if session['parse_responses']:
+    # Look for a message in Kafka
+    # Connect to Kafka
+    if session['connect_to_kafka']:
+        counter = 0
+        for kafka_msg in kafka_consumer:
+            counter += 1
+            if session['print_kafka_output']:
+                logging.info(kafka_msg)
+        if session['expect_kafka_output'] and counter == 0:
+            print("No Kafka Output Found, but expected")
+            logging.error("No Kafka Output Found, but expected")
+            sys.exit(1)
 
-        csvfile = None
-        success_field_list = None
-        success_key_list = None
-
-        # Pull the paths for configured fields
-        if session['fail_on_response']:
-            success_field_list = parse_config_path(session['response_field_path'])
-        if session['print_response_keys']:
-            success_key_list = parse_config_path(session['response_key_path'])
-
-            # Set up the CSV File
-            if sys.version_info[0] < 3:
-                csvfile = open(session['response_output_csv'], 'wb')
-            else:
-                csvfile = open(session['response_output_csv'], 'w')
-            csvwriter = csv.writer(csvfile, delimiter=',',
-                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            csvwriter.writerow(['Key'])
-
-        # Iterate over the responses
-        for response in session.response_list:
-            # JSON Response Parsing
-            if (session['msg_extension'] == 'json'):
-                logging.debug("Parsing Response: %s" % response)
-                parsed_json = None
-                try:
-                    parsed_json = json.loads(response)
-                except Exception as e:
-                    try:
-                        parsed_json = json.loads(response[1:])
-                    except Exception as e:
-                        logging.error('Unable to parse response: %s' % response)
-                if parsed_json is not None:
-
-                    # Write the response key to the CSV
-                    if session['print_response_keys']:
-                        key_val = find_json_path(parsed_json, success_key_list)
-                        try:
-                            csvwriter.writerow([key_val])
-                        except Exception as e:
-                            logging.error("Exception while writing response key")
-                            logging.error(e)
-                            sys.exit(1)
-
-                    # Test the success value and exit if necessary
-                    if session['fail_on_response']:
-                        try:
-                            success_val = find_json_path(parsed_json, success_field_list)
-                            logging.debug("Checking json success value")
-                            if int(success_val) != int(session['response_success_value']):
-                                logging.error("Incorrect Success value: %s != %s" % (success_val, session['response_success_value']))
-                                sys.exit(1)
-                        except Exception as e:
-                            logging.error("Exception while comparing response success value")
-                            logging.error(e)
-                            sys.exit(1)
-        if csvfile is not None:
-            csvfile.close()
     return 0;
 
 

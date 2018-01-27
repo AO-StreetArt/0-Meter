@@ -5,7 +5,7 @@ python:
   - "3.5"
   - "pypy"
 install:
-  - "pip install apscheduler pyzmq"
+  - "pip install apscheduler pyzmq kafka-python"
 script:
   - python ci/scripts/testserver.py &
   - python 0-meter.py config.xml
