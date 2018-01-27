@@ -81,7 +81,7 @@ def post_message():
 
             if session['out_0mq_connect_type'] == "REQ":
                 #Recieve the response
-                resp = session.socket.recv()
+                resp = session.socket.recv_string()
                 session.response_list.append(resp)
                 session.resp_time_list.append(time.time())
                 logging.info("Response Recieved:")
