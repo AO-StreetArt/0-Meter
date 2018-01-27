@@ -1,0 +1,24 @@
+<Configuration>
+  <Behavior>
+    <Single_Message>True</Single_Message>
+  </Behavior>
+  <Message>
+    <Message_Location>kill/kill.json</Message_Location>
+    <Message_Extension>json</Message_Extension>
+  </Message>
+  <ZeroMQ>
+    <Outbound_Connection>tcp://localhost:5556</Outbound_Connection>
+    <Outbound_Connection_Type>REQ</Outbound_Connection_Type>
+    <Timeout>5000</Timeout>
+  </ZeroMQ>
+  <Logging>
+    <Log_File>kill.log</Log_File>
+    <Log_Level>Debug</Log_Level>
+  </Logging>
+  <Response>
+    <Field_Path>responses[0.codes[1</Field_Path>
+    <Key_Path>responses[0.msg</Key_Path>
+    <Success_Value>1</Success_Value>
+    <Output_Csv>thanks.csv</Output_Csv>
+  </Response>
+</Configuration>
